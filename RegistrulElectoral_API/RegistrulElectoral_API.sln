@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.11.35327.3
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RegistrulElectoralAPI", "RegistrulElectoralAPI\RegistrulElectoralAPI.csproj", "{A4ABD495-9A0D-4B76-931A-782716D7684E}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Service", "Service\Service.csproj", "{7F381BB5-11BD-4E03-B75D-3042FCC26489}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{A4ABD495-9A0D-4B76-931A-782716D7684E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A4ABD495-9A0D-4B76-931A-782716D7684E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A4ABD495-9A0D-4B76-931A-782716D7684E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A4ABD495-9A0D-4B76-931A-782716D7684E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7F381BB5-11BD-4E03-B75D-3042FCC26489}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7F381BB5-11BD-4E03-B75D-3042FCC26489}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7F381BB5-11BD-4E03-B75D-3042FCC26489}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7F381BB5-11BD-4E03-B75D-3042FCC26489}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {BCEE699A-574C-413F-AE9D-6255AEEC7057}
+	EndGlobalSection
+EndGlobal
