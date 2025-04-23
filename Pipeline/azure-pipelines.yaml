@@ -1,0 +1,11 @@
+stages:
+- stage: Deploy
+  pool:
+      name: Default
+  jobs:
+      - template: Template/stage-deploy-template.yaml
+        parameters:
+          resourceGroup: 'VOTING_RG'
+          azureSubscription: 'Azure subscription 1'
+          terraformResourceGroup: '$(TERRAFORM_RG)'
+          terraformStorageAccount: '$(terraformst)'
