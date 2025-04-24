@@ -2,11 +2,13 @@ parameters:
   - name: resourceGroup
     default: "VOTING_RG"
   - name: azureSubscription
-    default: "Azure subscription 1"
+    default: "eVotingAzureServiceConnection"
+  - name: azureConnection
+    default: "eVotingAzureServiceConnection"
   - name: terraformResourceGroup
     default: "TERRAFORM_RG"
   - name: terraformStorageAccount
-    default: "terraformst"
+    default: "terraformst2"
   - name: terraformContainer
     default: "tfstate"
 
@@ -24,42 +26,40 @@ jobs:
               clean: true
               fetchDepth: 0
 
-            - task: ms-devlabs.custom-terraform-tasks.custom-terraform-installer-task.TerraformInstaller@0
-              displayName: "Terraform: Install v1.11.2"
+            - task: TerraformInstaller@1
               inputs:
-                terraformVersion: "1.11.2"
-            - task: AzureCLI@2
-              displayName: "Prepare backend for terraform"
-              inputs:
-                scriptType: ps
-                scriptLocation: inlineScript
-                azureSubscription: ${{ parameters.azureSubscription }}
-                inlineScript: |
-                  $RESOURCE_GROUP_NAME='${{ parameters.terraformResourceGroup }}'
-                  $STORAGE_ACCOUNT_NAME='${{ parameters.terraformStorageAccount }}'
-                  $CONTAINER_NAME='${{ parameters.terraformContainer }}'
-          
-                  az group create --name $RESOURCE_GROUP_NAME --location westeurope
-          
-                  az storage account create --resource-group $RESOURCE_GROUP_NAME --name $STORAGE_ACCOUNT_NAME --sku Standard_LRS --encryption-services blob
-          
-                  az storage container create --name $CONTAINER_NAME --account-name $STORAGE_ACCOUNT_NAME
-          
-                  $ACCOUNT_KEY=(az storage account keys list --resource-group $RESOURCE_GROUP_NAME --account-name $STORAGE_ACCOUNT_NAME --query '[0].value' -o tsv)
-                  $env:ARM_ACCESS_KEY=$ACCOUNT_KEY
-            - task: TerraformTaskV2@2
+                  terraformVersion: 'latest'
+            - task: TerraformTaskV4@4
               displayName: "Terraform: Init"
               inputs:
                   provider: "azurerm"
                   command: "init"
                   workingDirectory: "$(System.DefaultWorkingDirectory)/terraform"
-                  backendServiceArm: ${{ parameters.azureSubscription }}
+                  backendServiceArm: ${{ parameters.azureConnection }}
                   backendAzureRmResourceGroupName: ${{ parameters.terraformResourceGroup }}
                   backendAzureRmStorageAccountName: ${{ parameters.terraformStorageAccount }}
                   backendAzureRmContainerName: ${{ parameters.terraformContainer }}
                   backendAzureRmKey: "terraform.tfstate"
-            - task: TerraformTaskV2@2
+            - task: TerraformTaskV4@4
               displayName: "Terraform: Validate"
               inputs:
                   command: validate
                   workingDirectory: "$(System.DefaultWorkingDirectory)/terraform"
+            - task: TerraformTaskV4@4
+              displayName: "Terraform: Plan"
+              inputs:
+                  provider: "azurerm"
+                  command: "plan"
+                  workingDirectory: "$(System.DefaultWorkingDirectory)/terraform"
+                  commandOptions: "-input=false -var-file=variables/variables.tf -out=$(Agent.TempDirectory)/tfplan"
+                  environmentServiceNameAzureRM: ${{ parameters.azureConnection }}
+            - task: TerraformTaskV4@4
+              displayName: "Terraform: Apply"
+              name: terraform_apply
+              inputs:
+                  provider: "azurerm"
+                  command: "apply"
+                  workingDirectory: "$(System.DefaultWorkingDirectory)/terraform"
+                  commandOptions: "-auto-approve -input=false $(Agent.TempDirectory)/tfplan"
+                  environmentServiceNameAzureRM: ${{ parameters.azureConnection }}
+                  outputVariablesToJson: "$(Build.ArtifactStagingDirectory)/terraform_output.json"

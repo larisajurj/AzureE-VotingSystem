@@ -1,10 +1,5 @@
 #Resource Group
-variable "eVoting_rg_name" {
-  type = string
-}
-variable "rg_location" {
-  default = "westeurope"
-}
+eVoting_rg_name = "VOTING_RG"
 
 #RegistrulElectoral Api
 
@@ -17,3 +12,4 @@ variable "rg_location" {
 #Voting App
 
 #Voting Fn
+

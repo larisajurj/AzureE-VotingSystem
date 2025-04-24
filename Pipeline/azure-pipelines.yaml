@@ -1,11 +1,12 @@
 stages:
 - stage: Deploy
   pool:
-      vmImage: 'ubuntu-latest'
+    name: Default
   jobs:
       - template: Template/stage-deploy-template.yaml
         parameters:
           resourceGroup: 'VOTING_RG'
-          azureSubscription: 'eVotingAzureServiceConnection'
+          azureSubscription: 'Azure subscription 1'
+          azureConnection: 'eVotingConnection'
           terraformResourceGroup: 'TERRAFORM_RG'
-          terraformStorageAccount: 'terraformst'
+          terraformStorageAccount: 'terraformst2'
