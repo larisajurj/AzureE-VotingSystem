@@ -1,3 +1,12 @@
+trigger:
+  - none
+  
+parameters:  
+  - name: destroyInfra
+    displayName: "🔥 Destroy Whole Infrastructure"
+    type: boolean
+    default: false
+  
 stages:
 - stage: Deploy
   pool:
@@ -10,3 +19,4 @@ stages:
           azureConnection: 'eVotingConnection'
           terraformResourceGroup: 'TERRAFORM_RG'
           terraformStorageAccount: 'terraformst2'
+          destroyInfra: ${{ parameters.destroyInfra }}

@@ -11,6 +11,9 @@ parameters:
     default: "terraformst2"
   - name: terraformContainer
     default: "tfstate"
+  - name: destroyInfra
+    type: boolean
+    default: false
 
 jobs:
   - deployment: configure_azure
@@ -45,21 +48,43 @@ jobs:
               inputs:
                   command: validate
                   workingDirectory: "$(System.DefaultWorkingDirectory)/terraform"
-            - task: TerraformTaskV4@4
-              displayName: "Terraform: Plan"
-              inputs:
-                  provider: "azurerm"
-                  command: "plan"
-                  workingDirectory: "$(System.DefaultWorkingDirectory)/terraform"
-                  commandOptions: "-input=false -var-file=variables/variables.tf -out=$(Agent.TempDirectory)/tfplan"
-                  environmentServiceNameAzureRM: ${{ parameters.azureConnection }}
-            - task: TerraformTaskV4@4
-              displayName: "Terraform: Apply"
-              name: terraform_apply
-              inputs:
-                  provider: "azurerm"
-                  command: "apply"
-                  workingDirectory: "$(System.DefaultWorkingDirectory)/terraform"
-                  commandOptions: "-auto-approve -input=false $(Agent.TempDirectory)/tfplan"
-                  environmentServiceNameAzureRM: ${{ parameters.azureConnection }}
-                  outputVariablesToJson: "$(Build.ArtifactStagingDirectory)/terraform_output.json"
+            - ${{ if eq(parameters.destroyInfra, true) }}:
+              - task: TerraformTaskV2@2
+                displayName: Terraform plan destroy
+                name: terraform_destroy_plan
+                inputs:
+                    provider: "azurerm"
+                    command: "plan"
+                    workingDirectory: "$(System.DefaultWorkingDirectory)/terraform"
+                    commandOptions: "-destroy -input=false -var-file=variables/variables.tf -out=$(Agent.TempDirectory)/tfplan-destroy"
+                    environmentServiceNameAzureRM: ${{ parameters.azureConnection }}
+            - ${{ if eq(parameters.destroyInfra, true) }}:
+              - task: TerraformTaskV2@2
+                displayName: Terraform destroy
+                name: terraform_destroy_apply
+                inputs:
+                    provider: "azurerm"
+                    command: "apply"
+                    workingDirectory: "$(System.DefaultWorkingDirectory)/terraform"
+                    commandOptions: "-auto-approve -input=false $(Agent.TempDirectory)/tfplan-destroy"
+                    environmentServiceNameAzureRM: ${{ parameters.azureConnection }}
+            - ${{ if eq(parameters.destroyInfra, false) }}:
+              - task: TerraformTaskV4@4
+                displayName: "Terraform: Plan"
+                inputs:
+                    provider: "azurerm"
+                    command: "plan"
+                    workingDirectory: "$(System.DefaultWorkingDirectory)/terraform"
+                    commandOptions: "-input=false -var-file=variables/variables.tf -out=$(Agent.TempDirectory)/tfplan"
+                    environmentServiceNameAzureRM: ${{ parameters.azureConnection }}
+            - ${{ if eq(parameters.destroyInfra, false) }}:                
+              - task: TerraformTaskV4@4
+                displayName: "Terraform: Apply"
+                name: terraform_apply
+                inputs:
+                    provider: "azurerm"
+                    command: "apply"
+                    workingDirectory: "$(System.DefaultWorkingDirectory)/terraform"
+                    commandOptions: "-auto-approve -input=false $(Agent.TempDirectory)/tfplan"
+                    environmentServiceNameAzureRM: ${{ parameters.azureConnection }}
+                    outputVariablesToJson: "$(Build.ArtifactStagingDirectory)/terraform_output.json"
