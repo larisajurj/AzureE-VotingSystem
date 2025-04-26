@@ -1,0 +1,17 @@
+#Resource Group
+variable "resource_group" {
+  type = string
+}
+variable "location" {
+  default = "westeurope"
+}
+
+#Service Plan
+variable "app_asp_name" {
+  type = string
+}
+
+#RegistrulElectoral Api
+variable "electoral_register_app_name" {
+  type = string
+}

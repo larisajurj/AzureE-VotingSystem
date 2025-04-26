@@ -1,0 +1,24 @@
+#Service Plan Resource
+resource "azurerm_service_plan" "web_app_service_plan" {
+  name                = var.app_asp_name
+  resource_group_name = var.resource_group
+  location            = var.location
+  sku_name            = "F1"
+  os_type             = "Linux"
+}
+
+
+#Web App Resource
+resource "azurerm_linux_web_app" "web_app" {
+  name                = var.electoral_register_app_name
+  resource_group_name = var.resource_group
+  location            = var.location
+  service_plan_id     = azurerm_service_plan.web_app_service_plan.id
+
+  app_settings = {
+  }
+
+  site_config {
+    always_on = false
+  }
+}

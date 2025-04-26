@@ -11,7 +11,22 @@ parameters:
     default: "terraformst2"
   - name: terraformContainer
     default: "tfstate"
-  - name: destroyInfra
+  - name: deployInfra
+    type: boolean
+    default: false
+  - name: deploy_RegistrulElectoralAPI
+    type: boolean
+    default: false
+  - name: deploy_PollingStationApp
+    type: boolean
+    default: false
+  - name: deploy_PollingStationFn
+    type: boolean
+    default: false
+  - name: deploy_VotingWebApp
+    type: boolean
+    default: false
+  - name: deploy_VotingFn
     type: boolean
     default: false
 
@@ -19,6 +34,7 @@ jobs:
   - deployment: configure_azure
     displayName: Configure azure
     environment: "Development"
+    condition: ${{ eq(parameters.deployInfra, true) }}
     workspace:
       clean: all
     strategy:
@@ -48,43 +64,55 @@ jobs:
               inputs:
                   command: validate
                   workingDirectory: "$(System.DefaultWorkingDirectory)/terraform"
-            - ${{ if eq(parameters.destroyInfra, true) }}:
-              - task: TerraformTaskV2@2
-                displayName: Terraform plan destroy
-                name: terraform_destroy_plan
-                inputs:
-                    provider: "azurerm"
-                    command: "plan"
-                    workingDirectory: "$(System.DefaultWorkingDirectory)/terraform"
-                    commandOptions: "-destroy -input=false -var-file=variables/variables.tf -out=$(Agent.TempDirectory)/tfplan-destroy"
-                    environmentServiceNameAzureRM: ${{ parameters.azureConnection }}
-            - ${{ if eq(parameters.destroyInfra, true) }}:
-              - task: TerraformTaskV2@2
-                displayName: Terraform destroy
-                name: terraform_destroy_apply
-                inputs:
-                    provider: "azurerm"
-                    command: "apply"
-                    workingDirectory: "$(System.DefaultWorkingDirectory)/terraform"
-                    commandOptions: "-auto-approve -input=false $(Agent.TempDirectory)/tfplan-destroy"
-                    environmentServiceNameAzureRM: ${{ parameters.azureConnection }}
-            - ${{ if eq(parameters.destroyInfra, false) }}:
-              - task: TerraformTaskV4@4
-                displayName: "Terraform: Plan"
-                inputs:
-                    provider: "azurerm"
-                    command: "plan"
-                    workingDirectory: "$(System.DefaultWorkingDirectory)/terraform"
-                    commandOptions: "-input=false -var-file=variables/variables.tf -out=$(Agent.TempDirectory)/tfplan"
-                    environmentServiceNameAzureRM: ${{ parameters.azureConnection }}
-            - ${{ if eq(parameters.destroyInfra, false) }}:                
-              - task: TerraformTaskV4@4
-                displayName: "Terraform: Apply"
-                name: terraform_apply
-                inputs:
-                    provider: "azurerm"
-                    command: "apply"
-                    workingDirectory: "$(System.DefaultWorkingDirectory)/terraform"
-                    commandOptions: "-auto-approve -input=false $(Agent.TempDirectory)/tfplan"
-                    environmentServiceNameAzureRM: ${{ parameters.azureConnection }}
-                    outputVariablesToJson: "$(Build.ArtifactStagingDirectory)/terraform_output.json"
+            - task: TerraformTaskV4@4
+              displayName: "Terraform: Plan"
+              inputs:
+                  provider: "azurerm"
+                  command: "plan"
+                  workingDirectory: "$(System.DefaultWorkingDirectory)/terraform"
+                  commandOptions: "-input=false -var-file=variables/variables.tf -out=$(Agent.TempDirectory)/tfplan"
+                  environmentServiceNameAzureRM: ${{ parameters.azureConnection }}
+            - task: TerraformTaskV4@4
+              displayName: "Terraform: Apply"
+              name: terraform_apply
+              inputs:
+                  provider: "azurerm"
+                  command: "apply"
+                  workingDirectory: "$(System.DefaultWorkingDirectory)/terraform"
+                  commandOptions: "-auto-approve -input=false $(Agent.TempDirectory)/tfplan"
+                  environmentServiceNameAzureRM: ${{ parameters.azureConnection }}
+                  outputVariablesToJson: "$(Build.ArtifactStagingDirectory)/terraform_output.json"
+  - job: deploy_app_job
+    displayName: "Deploy resource code"
+    dependsOn:
+      - configure_azure
+    condition: not(or(failed(), canceled()))
+    steps:
+    - ${{ if eq(parameters.deploy_VotingFn, true) }}:          
+      - task: DownloadPipelineArtifact@2
+        displayName: "Download VotingFn Artifact"
+        inputs:
+            artifactName: 'VotingFn'  
+            targetPath: '$(Pipeline.Workspace)/VotingFn'
+    - ${{ if eq(parameters.deploy_VotingFn, true) }}:
+      - task: AzureFunctionApp@2
+        displayName: "Deploy VotingFn to Azure Function App"
+        inputs:
+          azureSubscription: ${{ parameters.azureConnection }}
+          appType: functionAppLinux
+          appName: 'VOTING-FN'
+          package: '$(Pipeline.Workspace)/VotingFn/VotingFn.zip'
+    - ${{ if eq(parameters.deploy_RegistrulElectoralAPI, true) }}:
+        - task: DownloadPipelineArtifact@2
+          displayName: "Download RegistrulElectoralAPI Artifact"
+          inputs:
+            artifactName: 'RegistrulElectoralAPI'
+            targetPath: '$(Pipeline.Workspace)/RegistrulElectoralAPI'
+    - ${{ if eq(parameters.deploy_RegistrulElectoralAPI, true) }}:        
+      - task: AzureWebApp@1
+        displayName: "Deploy RegistrulElectoralAPI to Azure Web App"
+        inputs:
+          azureSubscription: ${{ parameters.azureConnection }}
+          appName: 'REGISTRUL-ELECTORAL-API'
+          appType: webApp
+          package: '$(Pipeline.Workspace)/RegistrulElectoralAPI/RegistrulElectoralAPI.zip'

@@ -1,13 +1,117 @@
 trigger:
   - none
   
+pool:
+  name: 'Default'
+  demands:
+    - agent.name -equals DESKTOP-GKEFI42
+
 parameters:  
-  - name: destroyInfra
-    displayName: "🔥 Destroy Whole Infrastructure"
+  - name: deployInfra
+    displayName: "🚀 Deploy Infrastructure"
     type: boolean
     default: false
-  
+  - name: deploy_RegistrulElectoralAPI
+    displayName: "🛠️ Deploy RegistrulElectoralAPI"
+    type: boolean
+    default: false
+  - name: deploy_PollingStationApp
+    displayName: "🛠️ Deploy PollingStation Web App"
+    type: boolean
+    default: false
+  - name: deploy_PollingStationFn
+    displayName: "🛠️ Deploy PollingStation Function"
+    type: boolean
+    default: false
+  - name: deploy_VotingWebApp
+    displayName: "🛠️ Deploy Voting Web App"
+    type: boolean
+    default: false
+  - name: deploy_VotingFn
+    displayName: "🛠️ Deploy Voting Function"
+    type: boolean
+    default: false
+    
+variables:
+  deployInfra: ${{ parameters.deployInfra }}
+  deploy_RegistrulElectoralAPI: ${{ parameters.deploy_RegistrulElectoralAPI }}
+  deploy_PollingStationApp: ${{ parameters.deploy_PollingStationApp }}
+  deploy_PollingStationFn: ${{ parameters.deploy_PollingStationFn }}
+  deploy_VotingWebApp: ${{ parameters.deploy_VotingWebApp }}
+  deploy_VotingFn: ${{ parameters.deploy_VotingFn }}
+
 stages:
+- stage: Build
+  displayName: Build
+  jobs:
+    - job: Build_Web_App
+      displayName: Build Function Apps
+      cancelTimeoutInMinutes: 1
+      steps:
+        - task: UseDotNet@2
+          displayName: ".NET: Use Core sdk 9.x"
+          inputs:
+            version: 9.x
+        - task: DotNetCoreCLI@2
+          displayName: ".NET: Restore all projects"
+          inputs:
+            command: restore
+            projects: "**/*.csproj"
+        # Publish the RegistrulElectoralAPI               
+        - task: DotNetCoreCLI@2
+          displayName: '.NET: Publish RegistrulElectoralAPI'
+          condition: eq(variables['deploy_RegistrulElectoralAPI'], true)
+          inputs:
+            command: publish
+            publishWebProjects: false 
+            projects: 'RegistrulElectoral_API/RegistrulElectoralAPI/RegistrulElectoralAPI.csproj' 
+            arguments: '--configuration Release --output $(Build.ArtifactStagingDirectory)/RegistrulElectoralAPI_Output' 
+            zipAfterPublish: true 
+        # Publish the PollingStationFn
+        - task: DotNetCoreCLI@2
+          displayName: '.NET: Publish PollingStationFn'
+          condition: eq(variables['deploy_PollingStationFn'], true)
+          inputs:
+            command: publish
+            publishWebProjects: false 
+            projects: 'PollingStation/PollingStationFn/PollingStationFn.csproj' 
+            arguments: '--configuration Release --output $(Build.ArtifactStagingDirectory)/PollingStationFn_Output' 
+            zipAfterPublish: true 
+        # Publish the VotingFn
+        - task: DotNetCoreCLI@2
+          displayName: '.NET: Publish VotingFn'
+          condition: eq(variables['deploy_VotingFn'], true)
+          inputs:
+            command: publish
+            publishWebProjects: false
+            projects: 'Voting/VotingFn/VotingFn.csproj'
+            arguments: '--configuration Release --output $(Build.ArtifactStagingDirectory)/VotingFn_Output'
+            zipAfterPublish: true
+        # Publish the RegistrulElectoralAPI Artifact
+        - task: PublishBuildArtifacts@1
+          displayName: 'Publish Artifact: RegistrulElectoralAPI'
+          condition: eq(variables['deploy_RegistrulElectoralAPI'], true)
+          inputs:
+            PathtoPublish: '$(Build.ArtifactStagingDirectory)/RegistrulElectoralAPI_Output' 
+            ArtifactName: 'RegistrulElectoralAPI' 
+            publishLocation: 'Container' 
+        # Publish the Function Artifact
+        - task: PublishBuildArtifacts@1
+          displayName: 'Publish Artifact: PollingStationFn'
+          condition: eq(variables['deploy_PollingStationFn'], true)
+          inputs:
+            PathtoPublish: '$(Build.ArtifactStagingDirectory)/PollingStationFn_Output' 
+            ArtifactName: 'PollingStationFn'
+            publishLocation: 'Container'
+        # Publish the VotingFn Artifact
+        - task: PublishBuildArtifacts@1
+          displayName: 'Publish Artifact: VotingFn'
+          condition: eq(variables['deploy_VotingFn'], true)
+          inputs:
+            PathtoPublish: '$(Build.ArtifactStagingDirectory)/VotingFn_Output' 
+            ArtifactName: 'VotingFn' 
+            publishLocation: 'Container' 
+            
 - stage: Deploy
   pool:
     name: Default
@@ -19,4 +123,9 @@ stages:
           azureConnection: 'eVotingConnection'
           terraformResourceGroup: 'TERRAFORM_RG'
           terraformStorageAccount: 'terraformst2'
-          destroyInfra: ${{ parameters.destroyInfra }}
+          deployInfra: ${{ parameters.deployInfra }}
+          deploy_RegistrulElectoralAPI: ${{ parameters.deploy_RegistrulElectoralAPI }}
+          deploy_PollingStationApp: ${{ parameters.deploy_PollingStationApp }}
+          deploy_PollingStationFn: ${{ parameters.deploy_PollingStationFn }}
+          deploy_VotingWebApp: ${{ parameters.deploy_VotingWebApp }}
+          deploy_VotingFn: ${{ parameters.deploy_VotingFn }}
