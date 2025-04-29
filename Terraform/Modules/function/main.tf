@@ -36,12 +36,6 @@ resource "azurerm_linux_function_app" "voting_func" {
   storage_account_name          = azurerm_storage_account.func_st.name
   storage_account_access_key    = azurerm_storage_account.func_st.primary_access_key
   service_plan_id               = azurerm_service_plan.func_asp.id
-  
-  site_config {
-    application_stack {
-      dotnet_version = "8.0"
-    }
-  }
 
   site_config {
     application_stack {
@@ -50,11 +44,12 @@ resource "azurerm_linux_function_app" "voting_func" {
     }
   }
   
-  #app_settings = {
-  #  "FUNCTIONS_WORKER_RUNTIME"    = "dotnet-isolated"
-  #  "FUNCTIONS_EXTENSION_VERSION" = "~4"
-# #   "WEBSITE_RUN_FROM_PACKAGE"    = "1" # if you deploy zip package
-  #}
+  app_settings = {
+    "FUNCTIONS_WORKER_RUNTIME"               = "dotnet-isolated"
+    "FUNCTIONS_EXTENSION_VERSION"            = "~4"
+    "WEBSITE_USE_PLACEHOLDER_DOTNETISOLATED" = 1
+  }
+  
   depends_on = [
     azurerm_service_plan.func_asp,
     azurerm_storage_account.func_st
