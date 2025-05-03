@@ -61,3 +61,27 @@ module "web-app" {
   resource_group              = var.eVoting_rg_name
 }
 
+module "function" {
+  source = "./modules/storage-account"
+  depends_on = [
+    azurerm_resource_group.eVoting_rg,
+  ]
+  resource_group = var.eVoting_rg_name
+  votes_st_name  = var.voting_st_name
+}
+
+#module "vnet" {
+#  source = "./modules/vnet"
+#  depends_on = [
+#    azurerm_resource_group.eVoting_rg,
+#  ]
+#
+#  func_st_snet_name              = var.func_st_snet_name
+#  polling_station_app_snet_name  = var.polling_station_app_snet_name
+#  polling_station_func_snet_name = var.polling_station_func_snet_name
+#  resource_group                 = var.eVoting_rg_name
+#  vnet_name                      = var.vnet_name
+#  voting_app_snet_name           = var.voting_app_snet_name
+#  voting_func_snet_name          = var.voting_func_snet_name
+#  voting_st_snet_name            = var.voting_st_snet_name
+#}

@@ -8,8 +8,8 @@ resource "azurerm_service_plan" "web_app_service_plan" {
 }
 
 
-#Web App Resource
-resource "azurerm_linux_web_app" "web_app" {
+#Electoral Register Web App Resource
+resource "azurerm_linux_web_app" "electoral_register_web_app" {
   name                = var.electoral_register_app_name
   resource_group_name = var.resource_group
   location            = var.location
@@ -25,5 +25,4 @@ resource "azurerm_linux_web_app" "web_app" {
       dotnet_version = "8.0"
     }
   }
-  
 }
