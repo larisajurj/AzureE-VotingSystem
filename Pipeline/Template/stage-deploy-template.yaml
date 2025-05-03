@@ -1,0 +1,169 @@
+parameters:
+  - name: resourceGroup
+    default: "VOTING_RG"
+  - name: azureSubscription
+    default: "eVotingAzureServiceConnection"
+  - name: azureConnection
+    default: "eVotingAzureServiceConnection"
+  - name: terraformResourceGroup
+    default: "TERRAFORM_RG"
+  - name: terraformStorageAccount
+    default: "terraformst2"
+  - name: terraformContainer
+    default: "tfstate"
+  - name: deployInfra
+    type: boolean
+    default: false
+  - name: deploy_RegistrulElectoralAPI
+    type: boolean
+    default: false
+  - name: deploy_PollingStationApp
+    type: boolean
+    default: false
+  - name: deploy_PollingStationFn
+    type: boolean
+    default: false
+  - name: deploy_VotingWebApp
+    type: boolean
+    default: false
+  - name: deploy_VotingFn
+    type: boolean
+    default: false
+
+jobs:
+  - deployment: configure_azure
+    displayName: Configure azure
+    environment: "Development"
+    condition: ${{ eq(parameters.deployInfra, true) }}
+    workspace:
+      clean: all
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - checkout: self
+              clean: true
+              fetchDepth: 0
+            - task: TerraformInstaller@1
+              inputs:
+                  terraformVersion: 'latest'
+            - task: TerraformTaskV4@4
+              displayName: "Terraform: Init"
+              inputs:
+                  provider: "azurerm"
+                  command: "init"
+                  workingDirectory: "$(System.DefaultWorkingDirectory)/terraform"
+                  backendServiceArm: ${{ parameters.azureConnection }}
+                  backendAzureRmResourceGroupName: ${{ parameters.terraformResourceGroup }}
+                  backendAzureRmStorageAccountName: ${{ parameters.terraformStorageAccount }}
+                  backendAzureRmContainerName: ${{ parameters.terraformContainer }}
+                  backendAzureRmKey: "terraform.tfstate"
+            - task: TerraformTaskV4@4
+              displayName: "Terraform: Validate"
+              inputs:
+                  command: validate
+                  workingDirectory: "$(System.DefaultWorkingDirectory)/terraform"
+            - task: TerraformTaskV4@4
+              displayName: "Terraform: Plan"
+              inputs:
+                  provider: "azurerm"
+                  command: "plan"
+                  workingDirectory: "$(System.DefaultWorkingDirectory)/terraform"
+                  commandOptions: "-input=false -var-file=variables/variables.tf -out=$(Agent.TempDirectory)/tfplan"
+                  environmentServiceNameAzureRM: ${{ parameters.azureConnection }}
+            - task: TerraformTaskV4@4
+              displayName: "Terraform: Apply"
+              name: terraform_apply
+              inputs:
+                  provider: "azurerm"
+                  command: "apply"
+                  workingDirectory: "$(System.DefaultWorkingDirectory)/terraform"
+                  commandOptions: "-auto-approve -input=false $(Agent.TempDirectory)/tfplan"
+                  environmentServiceNameAzureRM: ${{ parameters.azureConnection }}
+                  outputVariablesToJson: "$(Build.ArtifactStagingDirectory)/terraform_output.json"
+                  
+  - job: deploy_app_job
+    displayName: "Deploy resource code"
+    dependsOn:
+      - configure_azure
+    condition: not(or(failed(), canceled()))
+    steps:
+    # Deploy Polling Station Portal
+    - ${{ if eq(parameters.deploy_PollingStationApp, true) }}:
+      - task: DownloadPipelineArtifact@2
+        displayName: "Download PollingStationApp Artifact"
+        inputs:
+          artifactName: 'PollingStationApp'
+          targetPath: '$(Pipeline.Workspace)/PollingStationApp'
+    - ${{ if eq(parameters.deploy_PollingStationApp, true) }}:
+      - task: AzureWebApp@1
+        displayName: "Deploy PollingStationApp to Azure Web App"
+        inputs:
+          azureSubscription: ${{ parameters.azureConnection }}
+          appType: functionAppLinux
+          appName: 'POLLING-STATION-PORTAL'
+          package: '$(Pipeline.Workspace)/PollingStationApp/PollingStationApp.zip'
+          
+    # Deploy Polling Station Function
+    - ${{ if eq(parameters.deploy_PollingStationFn, true) }}:
+        - task: DownloadPipelineArtifact@2
+          displayName: "Download PollingStationFn Artifact"
+          inputs:
+            artifactName: 'PollingStationFn'
+            targetPath: '$(Pipeline.Workspace)/PollingStationFn'
+    - ${{ if eq(parameters.deploy_VotingFn, true) }}:
+        - task: AzureFunctionApp@2
+          displayName: "Deploy PollingStationFn to Azure Function App"
+          inputs:
+            azureSubscription: ${{ parameters.azureConnection }}
+            appType: functionAppLinux
+            appName: 'POLLING-STATION-FN'
+            package: '$(Pipeline.Workspace)/PollingStationFn/PollingStationFn.zip'
+            
+    # Deploy Voting Function
+    - ${{ if eq(parameters.deploy_VotingFn, true) }}:          
+      - task: DownloadPipelineArtifact@2
+        displayName: "Download VotingFn Artifact"
+        inputs:
+            artifactName: 'VotingFn'  
+            targetPath: '$(Pipeline.Workspace)/VotingFn'
+    - ${{ if eq(parameters.deploy_VotingFn, true) }}:
+      - task: AzureFunctionApp@2
+        displayName: "Deploy VotingFn to Azure Function App"
+        inputs:
+          azureSubscription: ${{ parameters.azureConnection }}
+          appType: functionAppLinux
+          appName: 'VOTING-FN'
+          package: '$(Pipeline.Workspace)/VotingFn/VotingFn.zip'
+          
+    # Deploy Voting Portal
+    - ${{ if eq(parameters.deploy_VotingWebApp, true) }}:
+        - task: DownloadPipelineArtifact@2
+          displayName: "Download VotingApp Artifact"
+          inputs:
+            artifactName: 'VotingApp'
+            targetPath: '$(Pipeline.Workspace)/VotingApp'
+    - ${{ if eq(parameters.deploy_VotingWebApp, true) }}:
+        - task: AzureWebApp@1
+          displayName: "Deploy VotingApp to Azure Web App"
+          inputs:
+            azureSubscription: ${{ parameters.azureConnection }}
+            appName: 'VOTING-PORTAL-RO'
+            appType: webApp
+            package: '$(Pipeline.Workspace)/VotingApp/VotingApp.zip'
+            
+    # Deploy Registrul Electoral API    
+    - ${{ if eq(parameters.deploy_RegistrulElectoralAPI, true) }}:
+        - task: DownloadPipelineArtifact@2
+          displayName: "Download RegistrulElectoralAPI Artifact"
+          inputs:
+            artifactName: 'RegistrulElectoralAPI'
+            targetPath: '$(Pipeline.Workspace)/RegistrulElectoralAPI'
+    - ${{ if eq(parameters.deploy_RegistrulElectoralAPI, true) }}:        
+      - task: AzureWebApp@1
+        displayName: "Deploy RegistrulElectoralAPI to Azure Web App"
+        inputs:
+          azureSubscription: ${{ parameters.azureConnection }}
+          appName: 'REGISTRUL-ELECTORAL-API'
+          appType: webApp
+          package: '$(Pipeline.Workspace)/RegistrulElectoralAPI/RegistrulElectoralAPI.zip'
