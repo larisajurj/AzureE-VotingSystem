@@ -15,3 +15,13 @@ variable "app_asp_name" {
 variable "electoral_register_app_name" {
   type = string
 }
+
+#Polling Station App
+variable "polling_station_app_name" {
+  type = string
+}
+
+#Voting App
+variable "voting_app_name" {
+  type = string
+}

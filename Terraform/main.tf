@@ -43,10 +43,11 @@ module "function" {
   depends_on = [
     azurerm_resource_group.eVoting_rg,
   ]
-  func_asp_name    = var.func_asp_name
-  func_st_name     = var.func_st_name
-  resource_group   = var.eVoting_rg_name
-  voting_func_name = var.voting_func_name
+  func_asp_name           = var.func_asp_name
+  func_st_name            = var.func_st_name
+  resource_group          = var.eVoting_rg_name
+  voting_func_name        = var.voting_func_name
+  polling_station_fn_name = var.polling_station_fn_name
 }
 
 #Create the Web Apps
@@ -59,9 +60,11 @@ module "web-app" {
   app_asp_name                = var.app_asp_name
   electoral_register_app_name = var.electoral_register_app_name
   resource_group              = var.eVoting_rg_name
+  polling_station_app_name    = var.polling_station_app_name
+  voting_app_name             = var.voting_app_name
 }
 
-module "function" {
+module "storage-account" {
   source = "./modules/storage-account"
   depends_on = [
     azurerm_resource_group.eVoting_rg,

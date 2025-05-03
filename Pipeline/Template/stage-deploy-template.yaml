@@ -44,7 +44,6 @@ jobs:
             - checkout: self
               clean: true
               fetchDepth: 0
-
             - task: TerraformInstaller@1
               inputs:
                   terraformVersion: 'latest'
@@ -82,12 +81,46 @@ jobs:
                   commandOptions: "-auto-approve -input=false $(Agent.TempDirectory)/tfplan"
                   environmentServiceNameAzureRM: ${{ parameters.azureConnection }}
                   outputVariablesToJson: "$(Build.ArtifactStagingDirectory)/terraform_output.json"
+                  
   - job: deploy_app_job
     displayName: "Deploy resource code"
     dependsOn:
       - configure_azure
     condition: not(or(failed(), canceled()))
     steps:
+    # Deploy Polling Station Portal
+    - ${{ if eq(parameters.deploy_PollingStationApp, true) }}:
+      - task: DownloadPipelineArtifact@2
+        displayName: "Download PollingStationApp Artifact"
+        inputs:
+          artifactName: 'PollingStationApp'
+          targetPath: '$(Pipeline.Workspace)/PollingStationApp'
+    - ${{ if eq(parameters.deploy_PollingStationApp, true) }}:
+      - task: AzureWebApp@1
+        displayName: "Deploy PollingStationApp to Azure Web App"
+        inputs:
+          azureSubscription: ${{ parameters.azureConnection }}
+          appType: functionAppLinux
+          appName: 'POLLING-STATION-PORTAL'
+          package: '$(Pipeline.Workspace)/PollingStationApp/PollingStationApp.zip'
+          
+    # Deploy Polling Station Function
+    - ${{ if eq(parameters.deploy_PollingStationFn, true) }}:
+        - task: DownloadPipelineArtifact@2
+          displayName: "Download PollingStationFn Artifact"
+          inputs:
+            artifactName: 'PollingStationFn'
+            targetPath: '$(Pipeline.Workspace)/PollingStationFn'
+    - ${{ if eq(parameters.deploy_VotingFn, true) }}:
+        - task: AzureFunctionApp@2
+          displayName: "Deploy PollingStationFn to Azure Function App"
+          inputs:
+            azureSubscription: ${{ parameters.azureConnection }}
+            appType: functionAppLinux
+            appName: 'POLLING-STATION-FN'
+            package: '$(Pipeline.Workspace)/PollingStationFn/PollingStationFn.zip'
+            
+    # Deploy Voting Function
     - ${{ if eq(parameters.deploy_VotingFn, true) }}:          
       - task: DownloadPipelineArtifact@2
         displayName: "Download VotingFn Artifact"
@@ -102,6 +135,24 @@ jobs:
           appType: functionAppLinux
           appName: 'VOTING-FN'
           package: '$(Pipeline.Workspace)/VotingFn/VotingFn.zip'
+          
+    # Deploy Voting Portal
+    - ${{ if eq(parameters.deploy_VotingWebApp, true) }}:
+        - task: DownloadPipelineArtifact@2
+          displayName: "Download VotingApp Artifact"
+          inputs:
+            artifactName: 'VotingApp'
+            targetPath: '$(Pipeline.Workspace)/VotingApp'
+    - ${{ if eq(parameters.deploy_VotingWebApp, true) }}:
+        - task: AzureWebApp@1
+          displayName: "Deploy VotingApp to Azure Web App"
+          inputs:
+            azureSubscription: ${{ parameters.azureConnection }}
+            appName: 'VOTING-PORTAL-RO'
+            appType: webApp
+            package: '$(Pipeline.Workspace)/VotingApp/VotingApp.zip'
+            
+    # Deploy Registrul Electoral API    
     - ${{ if eq(parameters.deploy_RegistrulElectoralAPI, true) }}:
         - task: DownloadPipelineArtifact@2
           displayName: "Download RegistrulElectoralAPI Artifact"

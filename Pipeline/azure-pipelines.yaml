@@ -57,6 +57,26 @@ stages:
           inputs:
             command: restore
             projects: "**/*.csproj"
+        # Publish the PollingStationApp               
+        - task: DotNetCoreCLI@2
+          displayName: '.NET: Publish PollingStationApp'
+          condition: eq(variables['deploy_PollingStationApp'], true)
+          inputs:
+            command: publish
+            publishWebProjects: false
+            projects: 'PollingStation/PollingStationApp/PollingStationApp.csproj'
+            arguments: '--configuration Release --output $(Build.ArtifactStagingDirectory)/PollingStationApp_Output'
+            zipAfterPublish: true
+        # Publish the PollingStationFn               
+        - task: DotNetCoreCLI@2
+          displayName: '.NET: Publish PollingStationFn'
+          condition: eq(variables['deploy_PollingStationFn'], true)
+          inputs:
+            command: publish
+            publishWebProjects: false
+            projects: 'PollingStation/PollingStationFn/PollingStationFn.csproj'
+            arguments: '--configuration Release --output $(Build.ArtifactStagingDirectory)/PollingStationFn_Output'
+            zipAfterPublish: true
         # Publish the RegistrulElectoralAPI               
         - task: DotNetCoreCLI@2
           displayName: '.NET: Publish RegistrulElectoralAPI'
@@ -67,15 +87,15 @@ stages:
             projects: 'RegistrulElectoral_API/RegistrulElectoralAPI/RegistrulElectoralAPI.csproj' 
             arguments: '--configuration Release --output $(Build.ArtifactStagingDirectory)/RegistrulElectoralAPI_Output' 
             zipAfterPublish: true 
-        # Publish the PollingStationFn
+        # Publish the VotingWebApp
         - task: DotNetCoreCLI@2
-          displayName: '.NET: Publish PollingStationFn'
-          condition: eq(variables['deploy_PollingStationFn'], true)
+          displayName: '.NET: Publish VotingWebApp'
+          condition: eq(variables['deploy_VotingWebApp'], true)
           inputs:
             command: publish
             publishWebProjects: false 
-            projects: 'PollingStation/PollingStationFn/PollingStationFn.csproj' 
-            arguments: '--configuration Release --output $(Build.ArtifactStagingDirectory)/PollingStationFn_Output' 
+            projects: 'Voting/VotingApp/VotingApp.csproj' 
+            arguments: '--configuration Release --output $(Build.ArtifactStagingDirectory)/VotingApp_Output' 
             zipAfterPublish: true 
         # Publish the VotingFn
         - task: DotNetCoreCLI@2
@@ -87,6 +107,23 @@ stages:
             projects: 'Voting/VotingFn/VotingFn.csproj'
             arguments: '--configuration Release --output $(Build.ArtifactStagingDirectory)/VotingFn_Output'
             zipAfterPublish: true
+        
+        # Publish the PollingStationApp Artifact
+        - task: PublishBuildArtifacts@1
+          displayName: 'Publish Artifact: PollingStationApp'
+          condition: eq(variables['deploy_PollingStationApp'], true)
+          inputs:
+            PathtoPublish: '$(Build.ArtifactStagingDirectory)/PollingStationApp_Output'
+            ArtifactName: 'PollingStationApp'
+            publishLocation: 'Container'
+        # Publish the PollingStationFn Artifact
+        - task: PublishBuildArtifacts@1
+          displayName: 'Publish Artifact: PollingStationFn'
+          condition: eq(variables['deploy_PollingStationFn'], true)
+          inputs:
+            PathtoPublish: '$(Build.ArtifactStagingDirectory)/PollingStationFn_Output'
+            ArtifactName: 'PollingStationFn'
+            publishLocation: 'Container'
         # Publish the RegistrulElectoralAPI Artifact
         - task: PublishBuildArtifacts@1
           displayName: 'Publish Artifact: RegistrulElectoralAPI'
@@ -95,13 +132,13 @@ stages:
             PathtoPublish: '$(Build.ArtifactStagingDirectory)/RegistrulElectoralAPI_Output' 
             ArtifactName: 'RegistrulElectoralAPI' 
             publishLocation: 'Container' 
-        # Publish the Function Artifact
+        # Publish the VotingWebApp Artifact
         - task: PublishBuildArtifacts@1
-          displayName: 'Publish Artifact: PollingStationFn'
-          condition: eq(variables['deploy_PollingStationFn'], true)
+          displayName: 'Publish Artifact: VotingWebApp'
+          condition: eq(variables['deploy_VotingWebApp'], true)
           inputs:
-            PathtoPublish: '$(Build.ArtifactStagingDirectory)/PollingStationFn_Output' 
-            ArtifactName: 'PollingStationFn'
+            PathtoPublish: '$(Build.ArtifactStagingDirectory)/VotingApp_Output' 
+            ArtifactName: 'VotingApp'
             publishLocation: 'Container'
         # Publish the VotingFn Artifact
         - task: PublishBuildArtifacts@1
