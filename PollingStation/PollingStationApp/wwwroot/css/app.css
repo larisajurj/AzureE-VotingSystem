@@ -1,5 +1,73 @@
+:root {
+    --text-color: #ffffff;
+    --border-color: #dee2e6;
+    --link-color: #DDE6ED;
+    --button-text-color: #ffffff;
+    --button-hover-bg: #0056b3;
+    --button-background-color: #448BFF;
+    --dark-color: #000000;
+    --dark-medium-color: #0b0b0b;
+    --ligh-medium-color: #1a1a1a;
+    --light-color: #9DB2BF;
+    --icon-color: #448bff;
+    --selected-background-color: #4c78d033;
+    --selected-text-color: #a8c4f0;
+    --blue: #007bff;
+    --indigo: #6610f2;
+    --purple: #6f42c1;
+    --pink: #e83e8c;
+    --red: #dc3545;
+    --orange: #fd7e14;
+    --yellow: #ffc107;
+    --green: #28a745;
+    --teal: #20c997;
+    --cyan: #17a2b8;
+    --white: #fff;
+    --gray: #6c757d;
+    --gray-dark: #343a40;
+    --primary: #448bff;
+    --secondary: #535c78;
+    --success: #31c971;
+    --info: #14bae4;
+    --warning: #f4c414;
+    --danger: #f54394;
+    --light: #f5f5f6;
+    --dark: #192039;
+}
+
+
 html, body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background-color: var(--dark-color);
+    color: var(--text-color);
+    font-family: Inter,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,sans-serif transition: background-color 0.3s ease, color 0.3s ease; /* Smooth transition */
+}
+.page-content {
+    height: 100%;
+    padding: 1rem;
+    box-sizing: border-box;
+}
+.card {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    position: relative;
+    word-wrap: break-word;
+    background-clip: border-box;
+    background-color: var(--selected-background-color);
+    border: 1px solid rgba(19,24,44,.125);
+    border-radius: .25rem;
+}
+.card-header {
+    background-color: var(--ligh-medium-color);
+    border-bottom: 1px solid rgba(19,24,44,.125);
+    margin-bottom: 0;
+    padding: .75rem 1.25rem;
+}
+
+.card-body {
+    flex: 1 1 auto;
+    padding: 1.25rem;
+    background-color: var(--ligh-medium-color);
 }
 
 h1:focus {
@@ -7,7 +75,7 @@ h1:focus {
 }
 
 a, .btn-link {
-    color: #0071c1;
+    color: var(--link-color);
 }
 
 .btn-primary {
@@ -16,13 +84,15 @@ a, .btn-link {
     border-color: #1861ac;
 }
 
+.external-link-button {
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    padding: 4px 8px;
+}
 .btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
   box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
 }
 
-.content {
-    padding-top: 1.1rem;
-}
 
 .valid.modified:not([type=checkbox]) {
     outline: 1px solid #26b050;

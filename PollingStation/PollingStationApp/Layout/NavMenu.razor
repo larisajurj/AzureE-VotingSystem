@@ -1,6 +1,9 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿<div class="top-row ps-3 navbar">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">PollingStationApp</a>
+        <a class="navbar-brand" href="">
+            <i class="polling-station-icon fa-solid fa-person-booth"></i> 
+            <span class="title">Secția de Votare</span>
+        </a>
         <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
             <span class="navbar-toggler-icon"></span>
         </button>
@@ -11,17 +14,17 @@
     <nav class="flex-column">
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+                <i class="polling-station-icon navmenu-icon fa-solid fa-house"></i>
+                <span class="title">Acasă</span>
             </NavLink>
         </div>
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
-            </NavLink>
+            <span class="text-muted">Cum se folosește aplicația?</span>
         </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
+                <i class="polling-station-icon navmenu-icon fa-solid fa-cloud"></i>
+                <span class="title">Tutorial</span>
             </NavLink>
         </div>
     </nav>
