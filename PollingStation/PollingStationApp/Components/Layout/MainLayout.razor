@@ -1,0 +1,22 @@
+﻿@inherits LayoutComponentBase
+@using System.Globalization
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4">
+            <div class="top-menu">
+                <span class="toolbar-title-election-badge">nr. 113 Strada Steagului</span>
+                <span class="text-muted">@DateTime.Now.ToString("dd MMM yyyy", new CultureInfo("ro-RO"))</span>
+            </div>
+            <a class="external-link-button" href="https://login.microsoftonline.com/common/federation/oauth2msa" target="_blank">Autentificare</a>
+        </div>
+
+        <article class="page-content">
+            @Body
+        </article>
+    </main>
+</div>

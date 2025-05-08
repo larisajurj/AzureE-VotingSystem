@@ -1,0 +1,82 @@
+.navbar-toggler {
+    background-color: var(--dark-medium-color);
+}
+
+.top-row {
+    height: 3.5rem;
+    background-color: var(--dark-medium-color);
+}
+
+.navbar-brand {
+    font-size: 1.1rem;
+    background-color: var(--dark-medium-color);
+    color: white;
+    font-family: Inter,-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Helvetica Neue,Arial,sans-serif;
+    transition: background-color 0.3s ease, color 0.3s ease; /* Smooth transition */
+}
+
+.title {
+    font-weight: 600;
+    margin: 0 .5rem;
+    letter-spacing: -1px;
+}
+
+.polling-station-icon {
+    font-weight: 600;
+    max-height: 2.5rem;
+    vertical-align: middle;
+}
+
+
+.navmenu-icon {
+    color: var(--primary);
+}
+
+.nav-item {
+    font-size: 0.9rem;
+    padding-bottom: 0.5rem;
+}
+
+    .nav-item:first-of-type {
+        padding-top: 1rem;
+    }
+
+    .nav-item:last-of-type {
+        padding-bottom: 1rem;
+    }
+
+    .nav-item ::deep a {
+        color: #d7d7d7;
+        border-radius: 4px;
+        height: 3rem;
+        display: flex;
+        align-items: center;
+        line-height: 3rem;
+    }
+
+        .nav-item ::deep a.active {
+            background-color: var(--selected-background-color);
+            color: white;
+        }
+
+        .nav-item ::deep a:hover {
+            background-color: var(--button-hover-bg);
+            color: white;
+        }
+
+@media (min-width: 641px) {
+    .navbar-toggler {
+        display: none;
+    }
+
+    .collapse {
+        /* Never collapse the sidebar for wide screens */
+        display: block;
+    }
+
+    .nav-scrollable {
+        /* Allow sidebar to scroll for tall menus */
+        height: calc(100vh - 3.5rem);
+        overflow-y: auto;
+    }
+}
