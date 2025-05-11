@@ -1,4 +1,11 @@
 ﻿@page "/"
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using PollingStationApp.Data.Helpers.Abstractions
+@attribute [StreamRendering]
+@rendermode InteractiveServer
+@inject ITokenProvider TokenProvider
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>Home</PageTitle>
 <div class="content">
@@ -8,7 +15,20 @@
         </div>
         <div class="card-body">
             Welcome to your new app.
+            <button class="btn-primary" Color="ButtonColor.Primary" @onclick="OnClick"> Click here </button>
         </div>
     </div>
 </div>
 
+@code {
+    private ClaimsPrincipal? _user;
+
+    protected async void OnClick(EventArgs args)
+    {
+        Console.WriteLine("click event");
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        _user = authState.User;
+        var token = await TokenProvider.GetAccessTokenAsync(_user);
+        Console.WriteLine($"Token: {token}");
+    }
+}

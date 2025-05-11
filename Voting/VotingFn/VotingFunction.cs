@@ -23,15 +23,6 @@ public class VotingFunction
 		_votingService = votingService;
 	}
 
-
-/*	[Function(nameof(GetLogsByProcessFlowId))]
-	public async Task<HttpResponseData> GetLogsByProcessFlowId(
-		[HttpTrigger(AuthorizationLevel.Anonymous, WebRequestMethods.Http.Post, Route = "getLogsByProcessFlowId/{processFlowId}")] HttpRequestData req,
-		string processFlowId,
-		[FromBody] QueryOptions queryOptions,
-		CancellationToken cancellationToken)
-	{*/
-
 	[Function("SendVote")]
 	public async Task<IActionResult> SendVote(
 	[HttpTrigger(AuthorizationLevel.Anonymous, WebRequestMethods.Http.Post, Route = "SendVote")] HttpRequestData req,

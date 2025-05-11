@@ -37,3 +37,6 @@ voting_func_snet_name = "VOTING-FN-SNET"
 #Voting Storage Account
 voting_st_name      = "votingst"
 voting_st_snet_name = "VOTING-ST-SNET"
+
+#SignalR
+signalr_name = "voting-signalr"

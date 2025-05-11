@@ -82,3 +82,8 @@ variable "voting_st_name" {
 variable "voting_st_snet_name" {
   type = string
 }
+
+#SignalR
+variable "signalr_name" {
+  type = string
+}

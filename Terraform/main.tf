@@ -73,6 +73,18 @@ module "storage-account" {
   votes_st_name  = var.voting_st_name
 }
 
+module "signalr_service" {
+  source = "./modules/signalr"
+  depends_on = [
+    azurerm_resource_group.eVoting_rg,
+  ]
+  resource_group = var.eVoting_rg_name
+  electoral_register_app_name = var.electoral_register_app_name
+  polling_station_app_name = var.polling_station_app_name
+  signalr_name = var.signalr_name
+  voting_func_name = var.voting_func_name
+}
+
 #module "vnet" {
 #  source = "./modules/vnet"
 #  depends_on = [
