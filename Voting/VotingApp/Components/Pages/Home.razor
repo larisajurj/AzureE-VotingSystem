@@ -5,6 +5,8 @@
 @attribute [StreamRendering]
 @rendermode InteractiveServer
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JSRuntime
+
 
 <PageTitle>Home</PageTitle>
 <div class="content">
@@ -14,52 +16,53 @@
         </div>
         <div class="card-body">
             Welcome to your new app.
+            <h3>Your assigned cabin: @assignedCabin</h3>
+
         </div>
     </div>
 </div>
 
 @code {
     private HubConnection hubConnection;
-    private string message = "Waiting for unlock...";
+    private string sessionId;
+    private int assignedCabin;
+    private string userId = "user123"; // replace with real user ID
+    private bool initialized = false;
 
-    protected override async Task OnInitializedAsync()
+    protected override async Task OnAfterRenderAsync(bool firstRender)
     {
-        try
+        if (firstRender && !initialized)
         {
+            initialized = true;
+
+            // Now JS interop is safe
+            sessionId = await JSRuntime.InvokeAsync<string>("getOrCreateSessionId");
+
             hubConnection = new HubConnectionBuilder()
-                .WithUrl("http://localhost:5062/voting") // Use correct hub endpoint
+                .WithUrl("http://localhost:5062/voting")
                 .WithAutomaticReconnect()
                 .Build();
 
-            hubConnection.On<string, string>("UnlockApp", async (userId, cabin) =>
+            hubConnection.On<string, int>("UnlockApp", (userId, cabin) =>
             {
-                await InvokeAsync(() =>
-                {
-                    message = $"Unlocked by {userId} in {cabin}";
-                    Console.WriteLine(message);
-                    StateHasChanged();
-                });
+                // handle signal
             });
 
             await hubConnection.StartAsync();
 
-            if (hubConnection.State == HubConnectionState.Connected)
+            try
             {
-                Console.WriteLine("Connected ... Please type message now");
-                var testMessage = "Hey";
-                Console.WriteLine(hubConnection.ConnectionId);
-                // You can invoke methods here if needed
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine(ex.Message);
-        }
-    }
+                assignedCabin = await hubConnection.InvokeAsync<int>("RegisterSession", userId, sessionId);
+                Console.WriteLine($"Assigned cabin: {assignedCabin}");
 
-    public void Dispose()
-    {
-        _ = hubConnection.DisposeAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine("Rejected: " + ex.Message);
+                // Show error UI or redirect
+            }
+
+            StateHasChanged();
+        }
     }
 }
-

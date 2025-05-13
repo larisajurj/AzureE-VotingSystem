@@ -32,8 +32,11 @@ builder.Services.AddCors(options =>
 });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
-builder.Services.AddSignalR();
-
+builder.Services.AddSignalR(options =>
+{
+    options.ClientTimeoutInterval = TimeSpan.FromSeconds(5); // Waits max 10s for a ping
+    options.KeepAliveInterval = TimeSpan.FromSeconds(5);
+});
 
 var app = builder.Build();
 
