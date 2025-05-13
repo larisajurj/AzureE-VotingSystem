@@ -1,6 +1,7 @@
 ﻿@page "/"
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
+@using Microsoft.AspNetCore.SignalR.Client
 @using PollingStationApp.Data.Helpers.Abstractions
 @attribute [StreamRendering]
 @rendermode InteractiveServer
@@ -15,20 +16,32 @@
         </div>
         <div class="card-body">
             Welcome to your new app.
-            <button class="btn-primary" Color="ButtonColor.Primary" @onclick="OnClick"> Click here </button>
+            <button class="btn-primary" Color="ButtonColor.Primary" @onclick="OnClick"> Unlock app</button>
         </div>
     </div>
 </div>
 
 @code {
     private ClaimsPrincipal? _user;
+    private HubConnection hubConnection;
 
+    protected override async Task OnInitializedAsync()
+    {
+        hubConnection = new HubConnectionBuilder()
+            .WithUrl("http://localhost:5062/voting") // Change to your actual hub endpoint
+            .Build();
+
+        await hubConnection.StartAsync();
+    }
     protected async void OnClick(EventArgs args)
     {
         Console.WriteLine("click event");
-        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
-        _user = authState.User;
-        var token = await TokenProvider.GetAccessTokenAsync(_user);
-        Console.WriteLine($"Token: {token}");
+        //var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        //_user = authState.User;
+        //var token = await TokenProvider.GetAccessTokenAsync(_user);
+        //Console.WriteLine($"Token: {token}");
+        await hubConnection.InvokeAsync("UnlockApp", "user123", "Cabin1");
     }
+    
+    
 }
