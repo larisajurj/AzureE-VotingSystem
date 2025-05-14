@@ -17,7 +17,7 @@ terraform {
   }
 
   backend "azurerm" {}
-  required_version = "1.11.3"
+  required_version = "1.12.0"
 }
 
 provider "azurerm" {
@@ -51,39 +51,36 @@ resource "azurerm_resource_group" "eVoting_rg" {
 #}
 #
 #Create the Web Apps
-module "web-app" {
-  source = "./modules/web-app"
+#module "web-app" {
+#  source = "./modules/web-app"
+#  depends_on = [
+#    azurerm_resource_group.eVoting_rg,
+#  ]
+#
+#  app_asp_name                = var.app_asp_name
+#  electoral_register_app_name = var.electoral_register_app_name
+#  resource_group              = var.eVoting_rg_name
+#  polling_station_app_name    = var.polling_station_app_name
+#  voting_app_name             = var.voting_app_name
+#}
+
+module "database" {
+  source = "./modules/cosmos-db"
   depends_on = [
     azurerm_resource_group.eVoting_rg,
   ]
-
-  app_asp_name                = var.app_asp_name
-  electoral_register_app_name = var.electoral_register_app_name
-  resource_group              = var.eVoting_rg_name
-  polling_station_app_name    = var.polling_station_app_name
-  voting_app_name             = var.voting_app_name
+  cosmos_acc_name = var.cosmos_acc_name
+  resource_group  = var.eVoting_rg_name
 }
 
-module "storage-account" {
-  source = "./modules/storage-account"
-  depends_on = [
-    azurerm_resource_group.eVoting_rg,
-  ]
-  resource_group = var.eVoting_rg_name
-  votes_st_name  = var.voting_st_name
-}
-
-module "signalr_service" {
-  source = "./modules/signalr"
-  depends_on = [
-    azurerm_resource_group.eVoting_rg,
-  ]
-  resource_group = var.eVoting_rg_name
-  electoral_register_app_name = var.electoral_register_app_name
-  polling_station_app_name = var.polling_station_app_name
-  signalr_name = var.signalr_name
-  voting_func_name = var.voting_func_name
-}
+#module "storage-account" {
+#  source = "./modules/storage-account"
+#  depends_on = [
+#    azurerm_resource_group.eVoting_rg,
+#  ]
+#  resource_group = var.eVoting_rg_name
+#  votes_st_name  = var.voting_st_name
+#}
 
 #module "vnet" {
 #  source = "./modules/vnet"

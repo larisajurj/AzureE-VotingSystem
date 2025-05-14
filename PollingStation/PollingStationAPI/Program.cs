@@ -1,6 +1,9 @@
+using PollingStationAPI.Data;
+using PollingStationAPI.Service;
 using PollingStationAPI.VotingHub;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Configuration.AddJsonFile($"appsettings.json", false, true);
 
 builder.Services.AddControllers();
 //builder.Services.AddCors(options =>
@@ -37,6 +40,8 @@ builder.Services.AddSignalR(options =>
     options.ClientTimeoutInterval = TimeSpan.FromSeconds(5); // Waits max 10s for a ping
     options.KeepAliveInterval = TimeSpan.FromSeconds(5);
 });
+builder.Services.AddCosmosDb(builder.Configuration);
+builder.Services.AddAPIServices();
 
 var app = builder.Build();
 

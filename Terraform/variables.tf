@@ -83,7 +83,7 @@ variable "voting_st_snet_name" {
   type = string
 }
 
-#SignalR
-variable "signalr_name" {
+#CosmosDB
+variable "cosmos_acc_name" {
   type = string
 }

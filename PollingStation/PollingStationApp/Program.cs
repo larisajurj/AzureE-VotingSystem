@@ -5,6 +5,7 @@ using Microsoft.Identity.Web;
 using PollingStationApp.Data.Helpers.Abstractions;
 using PollingStationApp.Data.Helpers;
 using Microsoft.Identity.Web.UI;
+using PollingStationAPI.Data;
 var builder = WebApplication.CreateBuilder(args);
 
 JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
