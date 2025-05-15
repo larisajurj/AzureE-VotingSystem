@@ -39,7 +39,7 @@
             sessionId = await JSRuntime.InvokeAsync<string>("getOrCreateSessionId");
 
             hubConnection = new HubConnectionBuilder()
-                .WithUrl("http://localhost:5062/voting")
+                .WithUrl("https://localhost:7269/voting")
                 .WithAutomaticReconnect()
                 .Build();
 

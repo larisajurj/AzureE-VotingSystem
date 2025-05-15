@@ -8,5 +8,8 @@ public class PollingStation
     [JsonProperty("id")]
     public required string Id { get; set; }
     public string? Name { get; set; }
+	public string? City { get; set; }
+	public string? Country { get; set; }
     public List<CommitteeMember> CommitteeMember { get; set; } = new List<CommitteeMember>();
+	public List<Booth> Booths { get; set; } = new List<Booth>();
 }

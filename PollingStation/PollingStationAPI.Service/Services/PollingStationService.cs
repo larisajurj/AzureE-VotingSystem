@@ -1,5 +1,4 @@
 ﻿using PollingStationAPI.Data.Models;
-using PollingStationAPI.Data.Repository;
 using PollingStationAPI.Data.Repository.Abstractions;
 using PollingStationAPI.Service.Services.Abstractions;
 
@@ -39,7 +38,6 @@ public class PollingStationService : IPollingStationService
     }
         };
 
-        // Add to Cosmos DB using your repository
         await _repository.Add(pollingStation);
     }
 }

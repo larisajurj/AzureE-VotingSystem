@@ -1,64 +1,105 @@
-﻿@page "/weather"
+﻿@page "/voting-app"
+@using Microsoft.AspNetCore.SignalR
+@using VotingApp.Services
+@inject SignalRService VotingService
+@implements IAsyncDisposable
 @attribute [StreamRendering]
+@rendermode InteractiveServer
 
-<PageTitle>Weather</PageTitle>
+<h3>Voting Application</h3>
 
-<h1>Weather</h1>
-
-<p>This component demonstrates showing data.</p>
-
-@if (forecasts == null)
+@if (VotingService.IsConnected)
 {
-    <p><em>Loading...</em></p>
+    <p>Status: Connected</p>
+    <p>Your Session ID: @VotingService.CurrentSessionId</p>
+    @if (VotingService.CurrentCabinNumber.HasValue)
+    {
+        <p>You are voting from Cabin: @VotingService.CurrentCabinNumber</p>
+        <button class="btn btn-primary" @onclick="HandleUnlockApp">Request Unlock (My Cabin)</button>
+    }
+    else
+    {
+        <p>Cabin number not yet assigned or registration failed.</p>
+    }
 }
 else
 {
-    <table class="table">
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Temp. (C)</th>
-                <th>Temp. (F)</th>
-                <th>Summary</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var forecast in forecasts)
-            {
-                <tr>
-                    <td>@forecast.Date.ToShortDateString()</td>
-                    <td>@forecast.TemperatureC</td>
-                    <td>@forecast.TemperatureF</td>
-                    <td>@forecast.Summary</td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <p>Status: Disconnected or Connecting...</p>
+    @if (!string.IsNullOrEmpty(initializationError))
+    {
+        <p style="color: red;">Error: @initializationError</p>
+    }
 }
 
+@if (!string.IsNullOrEmpty(unlockMessage))
+{
+    <p style="color: green;">@unlockMessage</p>
+}
+
+<hr />
+<div>
+    <h4>Simulate User ID:</h4>
+    <input @bind="userId" placeholder="Enter User ID" />
+</div>
+
+
 @code {
-    private WeatherForecast[]? forecasts;
+    private string userId = "user"; // Example User ID
+    private string? initializationError;
+    private string? unlockMessage;
 
     protected override async Task OnInitializedAsync()
     {
-        // Simulate asynchronous loading to demonstrate streaming rendering
-        await Task.Delay(500);
-
-        var startDate = DateOnly.FromDateTime(DateTime.Now);
-        var summaries = new[] { "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching" };
-        forecasts = Enumerable.Range(1, 5).Select(index => new WeatherForecast
-        {
-            Date = startDate.AddDays(index),
-            TemperatureC = Random.Shared.Next(-20, 55),
-            Summary = summaries[Random.Shared.Next(summaries.Length)]
-        }).ToArray();
+        VotingService.OnAppUnlocked += HandleAppUnlockedFromServer;
+        VotingService.OnConnectionStateChanged += StateHasChanged; // Re-render on connection state changes
+        await ConnectAndRegister();
+        StateHasChanged();
     }
 
-    private class WeatherForecast
+    private async Task ConnectAndRegister()
     {
-        public DateOnly Date { get; set; }
-        public int TemperatureC { get; set; }
-        public string? Summary { get; set; }
-        public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            initializationError = "User ID cannot be empty.";
+            return;
+        }
+
+        initializationError = null; // Clear previous errors
+        try
+        {
+            await VotingService.InitializeAsync(userId);
+        }
+        catch (HubException hex)
+        {
+            initializationError = $"Failed to register: {hex.Message}";
+        }
+        catch (Exception ex)
+        {
+            initializationError = $"An error occurred: {ex.Message}";
+        }
+        StateHasChanged(); // Ensure UI updates
+    }
+
+    private async Task HandleUnlockApp()
+    {
+        if (VotingService.CurrentCabinNumber.HasValue && !string.IsNullOrEmpty(userId))
+        {
+            unlockMessage = ""; 
+            await VotingService.RequestUnlockAppAsync(userId, VotingService.CurrentCabinNumber.Value.ToString());
+        }
+    }
+
+    private void HandleAppUnlockedFromServer(string unlockedUserId, string unlockedCabin)
+    {
+        // This event is raised when ANY app is unlocked.
+        unlockMessage = $"Event: App unlocked for User '{unlockedUserId}' in Cabin '{unlockedCabin}'.";
+        InvokeAsync(StateHasChanged); 
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        VotingService.OnAppUnlocked -= HandleAppUnlockedFromServer;
+        VotingService.OnConnectionStateChanged -= StateHasChanged;
+
     }
 }

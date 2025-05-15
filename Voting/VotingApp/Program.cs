@@ -3,6 +3,7 @@ using System.IdentityModel.Tokens.Jwt;
 using Microsoft.Identity.Web;
 using Microsoft.Identity.Web.UI;
 using VotingApp.Components;
+using VotingApp.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
@@ -28,7 +29,7 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddControllersWithViews().AddMicrosoftIdentityUI();
 builder.Services.AddRazorPages();
-
+builder.Services.AddScoped<SignalRService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
