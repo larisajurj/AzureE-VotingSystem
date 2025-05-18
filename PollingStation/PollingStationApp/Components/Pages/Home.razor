@@ -23,7 +23,7 @@
 
 @code {
     private ClaimsPrincipal? _user;
-    private HubConnection hubConnection;
+    private HubConnection? hubConnection;
 
     protected override async Task OnInitializedAsync()
     {
@@ -40,7 +40,8 @@
         //_user = authState.User;
         //var token = await TokenProvider.GetAccessTokenAsync(_user);
         //Console.WriteLine($"Token: {token}");
-        await hubConnection.InvokeAsync("UnlockApp", "user123", "Cabin1");
+        if(hubConnection!=null)
+            await hubConnection.InvokeAsync("UnlockApp", "user123", "Cabin1");
     }
     
     

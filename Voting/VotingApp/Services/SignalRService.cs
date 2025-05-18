@@ -1,8 +1,6 @@
 ﻿namespace VotingApp.Services;
 
 using Microsoft.AspNetCore.SignalR;
-
-// In your Blazor client project (e.g., Services/VotingService.cs)
 using Microsoft.AspNetCore.SignalR.Client;
 using System;
 using System.Threading.Tasks;
@@ -11,109 +9,184 @@ public class SignalRService : IAsyncDisposable
 {
     private HubConnection? _hubConnection;
     private readonly string _hubUrl;
+    private string? _currentCircuitId; 
+    private string? _currentPollingStationId;
+    private string? _assignedCabin;
 
-    public string? CurrentSessionId => _hubConnection?.ConnectionId;
-    public int? CurrentCabinNumber { get; private set; }
     public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
 
-    public event Action<string, string>? OnAppUnlocked; 
-    public event Action? OnConnectionStateChanged;     
+    public event Action<string, string>? OnAppUnlocked;
+    public event Action? OnConnectionStateChanged;
 
-    public SignalRService()
+    public SignalRService(IConfiguration configuration) 
     {
-        _hubUrl = "http://localhost:5062/voting";
+        var apiURL = configuration.GetConnectionString("PollingStationAPI");
+        _hubUrl = $"{apiURL}/voting";
     }
 
-
-    public async Task InitializeAsync(string userId)
+    public async Task<string?> InitializeAndRegisterAsync(string pollingStationId, string circuitId)
     {
         if (_hubConnection != null && _hubConnection.State != HubConnectionState.Disconnected)
         {
-            Console.WriteLine("Already initialized or connecting.");
-            return;
+            if (_hubConnection.State == HubConnectionState.Connected && _currentCircuitId == circuitId)
+            {
+                Console.WriteLine("SignalRService: Already initialized and connected for this circuit.");
+                return _assignedCabin; // Return existing cabin if already registered for this
+            }
+            // If connected but for a different circuit, or in a connecting state, stop/dispose existing one.
+            await StopAsync(); // Ensure clean state before reinitializing
+            await DisposeCoreAsync(); // Dispose previous connection
         }
+
+        _currentCircuitId = circuitId; // Store for use in registration and re-registration
+        _currentPollingStationId = pollingStationId;
+        _assignedCabin = null; // Reset cabin
 
         _hubConnection = new HubConnectionBuilder()
-            .WithUrl(_hubUrl) 
-            .WithAutomaticReconnect() 
+            .WithUrl(_hubUrl, options =>
+            {
+                // options.AccessTokenProvider = ... // If using auth
+            })
+            .WithAutomaticReconnect()
             .Build();
 
-        _hubConnection.On<string, string>("UnlockApp", (user, cabin) =>
+        _hubConnection.On<string, string>("UnlockApp", (psId, cabin) => // psId for pollingStationId
         {
-            Console.WriteLine($"UnlockApp received from server: User {user}, Cabin {cabin}");
-            OnAppUnlocked?.Invoke(user, cabin);
+            Console.WriteLine($"SignalRService: UnlockApp received: PS {psId}, Cabin {cabin}");
+            OnAppUnlocked?.Invoke(psId, cabin);
         });
 
-        _hubConnection.Closed += async (error) =>
-        {
-            Console.WriteLine($"Connection closed: {error?.Message}");
-            CurrentCabinNumber = null; 
-            OnConnectionStateChanged?.Invoke();
-        };
-
-        _hubConnection.Reconnecting += (error) =>
-        {
-            Console.WriteLine($"Connection reconnecting: {error?.Message}");
-            OnConnectionStateChanged?.Invoke();
-            return Task.CompletedTask;
-        };
-
-        _hubConnection.Reconnected += async (newConnectionId) =>
-        {
-            Console.WriteLine($"Connection reconnected with ID: {newConnectionId}");
-            // IMPORTANT: Re-register the session on reconnect if to maintain same cabin logic
-            if (_hubConnection != null && !string.IsNullOrEmpty(userId))
-            {
-                try
-                {
-                    CurrentCabinNumber = await _hubConnection.InvokeAsync<int>("RegisterSession", userId, _hubConnection.ConnectionId);
-                    Console.WriteLine($"Session re-registered. User: {userId}, New SessionId: {_hubConnection.ConnectionId}, Cabin: {CurrentCabinNumber}");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Failed to re-register session: {ex.Message}");
-                    // Handle failure, maybe stop connection or notify user
-                    CurrentCabinNumber = null;
-                    await StopAsync(); // Or some other error handling
-                }
-            }
-            OnConnectionStateChanged?.Invoke();
-        };
-
-
-        await StartConnectionAsync(userId);
-    }
-
-    private async Task StartConnectionAsync(string userId)
-    {
-        if (_hubConnection == null || string.IsNullOrEmpty(userId))
-        {
-            Console.WriteLine("HubConnection not configured or userId missing.");
-            return;
-        }
+        _hubConnection.Closed += HandleConnectionClosed;
+        _hubConnection.Reconnecting += HandleReconnecting;
+        _hubConnection.Reconnected += HandleReconnected;
 
         try
         {
             await _hubConnection.StartAsync();
-            Console.WriteLine($"Connected to VotingHub with SessionId: {_hubConnection.ConnectionId}");
+            Console.WriteLine($"SignalRService: Connection started. ConnectionId: {_hubConnection.ConnectionId}");
+            _assignedCabin = await RegisterSessionWithHubAsync(); // Returns cabin or error string
             OnConnectionStateChanged?.Invoke();
-
-            // Once connected, register the session to get the cabin number
-            CurrentCabinNumber = await _hubConnection.InvokeAsync<int>("RegisterSession", userId, _hubConnection.ConnectionId);
-            Console.WriteLine($"Session registered. User: {userId}, SessionId: {_hubConnection.ConnectionId}, Cabin: {CurrentCabinNumber}");
-        }
-        catch (HubException hex) // Catch specific HubException from RegisterSession
-        {
-            Console.WriteLine($"HubException during connection/registration: {hex.Message}");
-            CurrentCabinNumber = null;
-            await StopAsync(); 
-            throw; 
+            return _assignedCabin;
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error connecting or registering session: {ex.Message}");
-            CurrentCabinNumber = null;
-            OnConnectionStateChanged?.Invoke();
+            Console.WriteLine($"SignalRService: Error starting connection or initial registration: {ex.Message}");
+            _assignedCabin = $"Error: {ex.Message}";
+            OnConnectionStateChanged?.Invoke(); // Notify state changed even on error
+            await DisposeCoreAsync(); // Clean up if start failed
+            return _assignedCabin; // Or throw ex; to let caller handle
+        }
+    }
+
+    // Renamed for clarity
+    private async Task<string?> RegisterSessionWithHubAsync()
+    {
+        if (_hubConnection?.State != HubConnectionState.Connected || string.IsNullOrEmpty(_currentCircuitId) || string.IsNullOrEmpty(_currentPollingStationId))
+        {
+            Console.WriteLine("SignalRService: Cannot register session. Not connected or missing IDs.");
+            return "Error: Not connected or IDs missing.";
+        }
+
+        try
+        {
+            // IMPORTANT: Ensure "RegisterSession" on the hub expects the CircuitId
+            int boothNumber = await _hubConnection.InvokeAsync<int>("RegisterSession", _currentCircuitId, _currentPollingStationId);
+            var cabin = boothNumber.ToString();
+            Console.WriteLine($"SignalRService: Session registered with Hub. CircuitId: {_currentCircuitId}, PS: {_currentPollingStationId}, Cabin: {cabin}");
+            return cabin;
+        }
+        catch (HubException hex)
+        {
+            Console.WriteLine($"SignalRService: HubException calling RegisterSession: {hex.Message}");
+            return $"Error: {hex.Message}";
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"SignalRService: Error calling RegisterSession: {ex.Message}");
+            return $"Error: {ex.Message}";
+        }
+    }
+
+    // Corrected DeleteMySession - now async Task and calls a different hub method
+    public async Task DeleteMySessionAsync(string circuitId, string cabinNumber, string pollingStationId)
+    {
+        if (_hubConnection?.State == HubConnectionState.Connected)
+        {
+            try
+            {
+                // Assuming your hub has a method like "UnregisterSession" or "ClientDisconnected"
+                // It should take identifiers to know which session to clean up.
+                Console.WriteLine($"SignalRService: Requesting to unregister session. CircuitId: {circuitId}, Cabin: {cabinNumber}, PS: {pollingStationId}");
+                await _hubConnection.InvokeAsync("DeleteSession", cabinNumber, pollingStationId);
+                // If this is the current session being deleted, update local state
+                if (circuitId == _currentCircuitId)
+                {
+                    _assignedCabin = null;
+                    // Optionally, stop the connection if this client instance should no longer be active
+                    // await StopAsync();
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"SignalRService: Error calling UnregisterSession on hub: {ex.Message}");
+            }
+        }
+        else
+        {
+            Console.WriteLine("SignalRService: Cannot unregister session, not connected.");
+        }
+    }
+
+    private Task HandleConnectionClosed(Exception? error)
+    {
+        Console.WriteLine($"SignalRService: Connection closed. Error: {error?.Message}");
+        _assignedCabin = null; // Clear cabin as connection is lost
+        OnConnectionStateChanged?.Invoke();
+        return Task.CompletedTask;
+    }
+
+    private Task HandleReconnecting(Exception? error)
+    {
+        Console.WriteLine($"SignalRService: Connection reconnecting. Error: {error?.Message}");
+        OnConnectionStateChanged?.Invoke();
+        return Task.CompletedTask;
+    }
+
+    private async Task HandleReconnected(string? newConnectionId)
+    {
+        Console.WriteLine($"SignalRService: Connection reconnected with new ConnectionId: {newConnectionId}. Old CircuitId was: {_currentCircuitId}");
+        // Re-register using the original _currentCircuitId and _currentPollingStationId
+        if (!string.IsNullOrEmpty(_currentCircuitId) && !string.IsNullOrEmpty(_currentPollingStationId))
+        {
+            _assignedCabin = await RegisterSessionWithHubAsync(); // This will use _currentCircuitId
+            // If RegisterSessionWithHubAsync fails, _assignedCabin will contain error
+        }
+        else
+        {
+            Console.WriteLine("SignalRService: Cannot re-register session on reconnect, original IDs missing.");
+            _assignedCabin = "Error: Reconnect failed to re-register.";
+        }
+        OnConnectionStateChanged?.Invoke();
+    }
+
+
+    public async Task RequestUnlockAppAsync(string pollingStationToUnlock, string cabinToUnlock) // Parameters renamed for clarity
+    {
+        if (_hubConnection != null && IsConnected)
+        {
+            try
+            {
+                // Make sure your Hub's "UnlockApp" method expects these parameters
+                await _hubConnection.InvokeAsync("UnlockApp", pollingStationToUnlock, cabinToUnlock);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"SignalRService: Error calling UnlockApp on server: {ex.Message}");
+            }
+        }
+        else
+        {
+            Console.WriteLine("SignalRService: Not connected. Cannot send UnlockApp request.");
         }
     }
 
@@ -121,43 +194,43 @@ public class SignalRService : IAsyncDisposable
     {
         if (_hubConnection != null && _hubConnection.State != HubConnectionState.Disconnected)
         {
+            Console.WriteLine("SignalRService: Stopping hub connection.");
             await _hubConnection.StopAsync();
         }
     }
-	public async Task RequestUnlockAppAsync(string userId, string cabin)
+
+    // Extracted core disposal logic to be callable from InitializeAndRegisterAsync if needed
+    private async ValueTask DisposeCoreAsync()
     {
-        if (_hubConnection != null && IsConnected)
+        if (_hubConnection != null)
         {
-            try
+            _hubConnection.Closed -= HandleConnectionClosed;
+            _hubConnection.Reconnecting -= HandleReconnecting;
+            _hubConnection.Reconnected -= HandleReconnected;
+
+            if (_hubConnection.State != HubConnectionState.Disconnected)
             {
-                await _hubConnection.InvokeAsync("UnlockApp", userId, cabin);
+                try
+                {
+                    await _hubConnection.StopAsync(); // Ensure it's stopped before disposing
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"SignalRService: Exception during StopAsync in DisposeCoreAsync: {ex.Message}");
+                }
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error calling UnlockApp on server: {ex.Message}");
-            }
-        }
-        else
-        {
-            Console.WriteLine("Not connected. Cannot send UnlockApp request.");
+            await _hubConnection.DisposeAsync();
+            _hubConnection = null;
+            _assignedCabin = null; 
+            _currentCircuitId = null;
+            _currentPollingStationId = null;
+            OnConnectionStateChanged?.Invoke(); 
         }
     }
 
     public async ValueTask DisposeAsync()
     {
-        if (_hubConnection != null)
-        {
-            _hubConnection.Closed -= OnConnectionClosedHandler; // Example if you had a named handler
-            _hubConnection.Reconnecting -= OnReconnectingHandler;
-            _hubConnection.Reconnected -= OnReconnectedHandler;
-            await _hubConnection.DisposeAsync();
-            _hubConnection = null;
-            CurrentCabinNumber = null;
-            OnConnectionStateChanged?.Invoke();
-        }
+        await DisposeCoreAsync();
+        GC.SuppressFinalize(this);
     }
-
-    private Task OnConnectionClosedHandler(Exception? error) { /* ... */ return Task.CompletedTask; }
-    private Task OnReconnectingHandler(Exception? error) { /* ... */ return Task.CompletedTask; }
-    private Task OnReconnectedHandler(string? newConnectionId) { /* ... */ return Task.CompletedTask; }
 }

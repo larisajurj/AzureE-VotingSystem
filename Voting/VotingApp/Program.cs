@@ -4,6 +4,8 @@ using Microsoft.Identity.Web;
 using Microsoft.Identity.Web.UI;
 using VotingApp.Components;
 using VotingApp.Services;
+using BlazorCircuitHandler.Services;
+using Microsoft.AspNetCore.Components.Server.Circuits;
 var builder = WebApplication.CreateBuilder(args);
 
 JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
@@ -29,14 +31,19 @@ builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 builder.Services.AddControllersWithViews().AddMicrosoftIdentityUI();
 builder.Services.AddRazorPages();
+builder.Services.AddHttpClient();
 builder.Services.AddScoped<SignalRService>();
+builder.Services.AddScoped<CircuitHandlerService>();
+builder.Services.AddScoped<CircuitHandler>(sp => sp.GetRequiredService<CircuitHandlerService>());
+builder.Services.AddScoped<IUserOnlineService, UserOnlineService>();
+
 var app = builder.Build();
+
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
 }
 

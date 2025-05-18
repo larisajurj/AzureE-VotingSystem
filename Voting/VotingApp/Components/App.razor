@@ -16,16 +16,6 @@
 <body>
     <Routes />
     <script src="_framework/blazor.web.js"></script>
-    <script>
-        window.getOrCreateSessionId = function () {
-            let id = sessionStorage.getItem("sessionId");
-            if (!id) {
-                id = crypto.randomUUID();
-                sessionStorage.setItem("sessionId", id);
-            }
-            return id;
-        };
-    </script>
 </body>
 
 </html>

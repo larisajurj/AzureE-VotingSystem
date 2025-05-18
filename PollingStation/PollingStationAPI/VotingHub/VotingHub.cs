@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.Routing.Constraints;
+using Microsoft.AspNetCore.SignalR;
 using PollingStationAPI.Service.Services.Abstractions;
 using PollingStationAPI.VotingHub.Abstractions;
 
@@ -31,13 +32,13 @@ public class VotingHub : Hub<IVotingHub>
         }
     }
 
-    public async Task DeleteSession(int boothId, string pollingStationId) 
+    public async Task DeleteSession(string boothId, string pollingStationId) 
     {
         Console.WriteLine($"Deleting session for PollingStationId: {pollingStationId}, BoothId: {boothId}");
-
         try
         {
-            await _pollingStationService.DeleteSession( boothId, pollingStationId);
+            int cabinNr = Int32.Parse(boothId);
+            await _pollingStationService.DeleteSession(cabinNr, pollingStationId);
         }
         catch (HubException)
         {

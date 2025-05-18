@@ -1,4 +1,4 @@
-﻿@page "/voting-app"
+﻿@* @page "/voting-app"
 @using Microsoft.AspNetCore.SignalR
 @using VotingApp.Services
 @inject SignalRService VotingService
@@ -59,8 +59,8 @@ else
     private async Task ConnectAndRegister()
     {
         if (string.IsNullOrWhiteSpace(userId))
-        {
-            initializationError = "User ID cannot be empty.";
+        {            initializationError = "User ID cannot be empty.";
+
             return;
         }
 
@@ -102,4 +102,4 @@ else
         VotingService.OnConnectionStateChanged -= StateHasChanged;
 
     }
-}
+} *@

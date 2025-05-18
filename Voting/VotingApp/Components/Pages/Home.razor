@@ -1,11 +1,18 @@
 ﻿@page "/"
+@using BlazorCircuitHandler.Services
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Server.Circuits
+@using Microsoft.AspNetCore.SignalR
 @using Microsoft.AspNetCore.SignalR.Client
+@using VotingApp.Services
+
 @attribute [StreamRendering]
 @rendermode InteractiveServer
 @inject AuthenticationStateProvider AuthenticationStateProvider
-@inject IJSRuntime JSRuntime
+@inject IUserOnlineService UserOnlineService
+@inject CircuitHandlerService CircuitHandlerService
+@inject SignalRService VotingService
 
 
 <PageTitle>Home</PageTitle>
@@ -16,53 +23,144 @@
         </div>
         <div class="card-body">
             Welcome to your new app.
-            <h3>Your assigned cabin: @assignedCabin</h3>
+            <p>Your Session ID: @UserOnlineService.CircuitId</p>
 
+            <h3>Your assigned cabin: @UserOnlineService.CabinNumber</h3>
+            @if (!string.IsNullOrEmpty(initializationError))
+            {
+                <p style="color: red;">Error: @initializationError</p>
+            }
         </div>
     </div>
 </div>
 
 @code {
-    private HubConnection hubConnection;
-    private string sessionId;
-    private int assignedCabin;
-    private string userId = "user123"; // replace with real user ID
-    private bool initialized = false;
+    private HubConnection? _hubConnection;
+    private string? _sessionId;
+    private string _pollingStationId = "2"; 
+    private string _assignedCabin = string.Empty;
+    private bool _isConnected = false;
+    private string? initializationError;
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override async Task OnInitializedAsync()
     {
-        if (firstRender && !initialized)
+
+        VotingService.OnAppUnlocked += HandleAppUnlockedFromServer;
+        VotingService.OnConnectionStateChanged += UpdateConnectionState;
+        _sessionId = CircuitHandlerService.CircuitId;
+        if (string.IsNullOrEmpty(_sessionId))
         {
-            initialized = true;
+            Console.WriteLine("Session ID not available immediately in OnInitializedAsync.");
+        }
 
-            // Now JS interop is safe
-            sessionId = await JSRuntime.InvokeAsync<string>("getOrCreateSessionId");
+        await ConnectAndRegister();
+    }
 
-            hubConnection = new HubConnectionBuilder()
-                .WithUrl("https://localhost:7269/voting")
-                .WithAutomaticReconnect()
-                .Build();
+    private async Task ConnectAndRegister()
+    {
+        if (string.IsNullOrEmpty(_sessionId))
+        {
+            initializationError = "Circuit/Session ID is not available to connect.";
+            _isConnected = false;
+            StateHasChanged();
+            return;
+        }
 
-            hubConnection.On<string, int>("UnlockApp", (userId, cabin) =>
+        try
+        {
+            initializationError = null; // Clear previous errors
+            // InitializeAsync will handle connection and initial registration
+            // It should return the assigned cabin or an indicator of success/failure
+            string? cabin = await VotingService.InitializeAndRegisterAsync(_pollingStationId, _sessionId);
+
+            if (!string.IsNullOrEmpty(cabin) && !cabin.StartsWith("Error:"))
             {
-                // handle signal
-            });
+                _assignedCabin = cabin;
+                UserOnlineService.Connect(_sessionId, _assignedCabin, _pollingStationId); // Connect UserOnlineService *after* getting cabin
+                Console.WriteLine($"Component: Registered session {_sessionId}, Polling Station: {_pollingStationId}, Got Cabin: {_assignedCabin}");
+            }
+            else
+            {
+                _assignedCabin = string.Empty; // Or cabin if it contains the error message
+                initializationError = $"Failed to register with SignalR service: {cabin ?? "Unknown error"}";
+                Console.WriteLine(initializationError);
+            }
+        }
+        catch (Exception ex) // Catch exceptions from InitializeAndRegisterAsync
+        {
+            initializationError = $"An error occurred during initialization: {ex.Message}";
+            _assignedCabin = string.Empty;
+            Console.WriteLine($"Component: Initialization error: {ex.Message}");
+        }
+        _isConnected = VotingService.IsConnected; // Update based on service state
+        StateHasChanged(); // Ensure UI updates
+    }
 
-            await hubConnection.StartAsync();
+    private void UpdateConnectionState()
+    {
+        _isConnected = VotingService.IsConnected;
+        if (!_isConnected && string.IsNullOrEmpty(initializationError)) // If disconnected not due to initial error
+        {
+            _assignedCabin = string.Empty; // Clear cabin on disconnect
+            // Optionally: display a "disconnected" message or try to reconnect via UI
+        }
+        InvokeAsync(StateHasChanged);
+    }
 
+    private async Task StartConnection()
+    {
+        try
+        {
+            await _hubConnection.StartAsync();
+            _isConnected = true;
+            Console.WriteLine("Connection started");
+            await RegisterMySession();
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error starting connection: {ex.Message}");
+            _isConnected = false;
+        }
+    }
+
+    private async Task RegisterMySession()
+    {
+        try
+        {
+            await VotingService.InitializeAndRegisterAsync(_pollingStationId, _assignedCabin);
+            UserOnlineService.Connect(_sessionId, _assignedCabin, _pollingStationId);
+            Console.WriteLine($"Registered session {_sessionId} and got booth number: {_assignedCabin}");
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error calling RegisterSession: {ex.Message}");
+            _assignedCabin = "Error: " + ex.Message;
+            StateHasChanged();
+        }
+    }
+
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection != null)
+        {
             try
             {
-                assignedCabin = await hubConnection.InvokeAsync<int>("RegisterSession", userId, sessionId);
-                Console.WriteLine($"Assigned cabin: {assignedCabin}");
-
+                await _hubConnection.StopAsync();
             }
             catch (Exception ex)
             {
-                Console.WriteLine("Rejected: " + ex.Message);
-                // Show error UI or redirect
+                Console.WriteLine($"Error stopping connection: {ex.Message}");
             }
-
-            StateHasChanged();
+            await _hubConnection.DisposeAsync();
         }
+    }
+
+    private void HandleAppUnlockedFromServer(string unlockedUserId, string unlockedCabin)
+    {
+        // This event is raised when ANY app is unlocked.
+        InvokeAsync(StateHasChanged);
     }
 }
