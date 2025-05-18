@@ -1,100 +1,58 @@
 ﻿using Microsoft.AspNetCore.SignalR;
+using PollingStationAPI.Service.Services.Abstractions;
 using PollingStationAPI.VotingHub.Abstractions;
-using System.Collections.Concurrent;
 
 namespace PollingStationAPI.VotingHub;
 
 public class VotingHub : Hub<IVotingHub>
 {
-    private const int MaxCabinsPerUser = 3;
-    private static ConcurrentDictionary<string, List<(string sessionId, int cabinNumber)>> UserSessions = new();
-
-    public Task<int> RegisterSession(string userId, string sessionId)
+    private readonly IPollingStationService _pollingStationService;
+    public VotingHub(IPollingStationService pollingStationService)
     {
-        Console.WriteLine($"Registering session for User: {userId}, SessionId: {sessionId}");
-        var sessions = UserSessions.GetOrAdd(userId, _ => new List<(string, int)>());
+        _pollingStationService = pollingStationService;
+    }
+    public async Task<int> RegisterSession(string sessionId, string pollingStationId) //Removed userId
+    {
+        Console.WriteLine($"Registering session for SessionId: {sessionId}, PollingStationId: {pollingStationId}");
 
-        lock (sessions) 
+        try
         {
-            var existingSession = sessions.FirstOrDefault(s => s.sessionId == sessionId);
-            if (existingSession != default)
-            {
-                Console.WriteLine($"Session {sessionId} already registered for user {userId} with cabin {existingSession.cabinNumber}.");
-                return Task.FromResult(existingSession.cabinNumber);
-            }
-
-            // Check if the user has reached the max number of concurrent sessions (cabins)
-            if (sessions.Count >= MaxCabinsPerUser)
-            {
-                Console.WriteLine($"User {userId} reached maximum number of cabins ({MaxCabinsPerUser}). Denying session {sessionId}.");
-                throw new HubException($"Maximum number of cabins ({MaxCabinsPerUser}) reached for this user.");
-            }
-
-            // Find the lowest available cabin number
-            var assignedCabins = sessions.Select(s => s.cabinNumber).ToHashSet();
-            int nextCabin = 1;
-            while (assignedCabins.Contains(nextCabin) && nextCabin <= MaxCabinsPerUser)
-            {
-                nextCabin++;
-            }
-
-            if (nextCabin > MaxCabinsPerUser) 
-            {
-                 Console.WriteLine($"User {userId} - No available cabin numbers (this should not happen if MaxCabinsPerUser check is correct). Denying session {sessionId}.");
-                 throw new HubException("Error assigning cabin: No available cabin numbers.");
-            }
-
-            sessions.Add((sessionId, nextCabin));
-            Console.WriteLine($"Assigned Cabin {nextCabin} to User {userId} for Session {sessionId}. Total sessions for user: {sessions.Count}");
-            return Task.FromResult(nextCabin);
+            var booth = await _pollingStationService.RegisterSession(sessionId, pollingStationId);
+            return booth.Id; 
+        }
+        catch (HubException)
+        {
+            throw; 
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error registering session: {ex.Message}");
+            throw new HubException("Failed to register session.", ex); //Wrap the exception
         }
     }
 
-    public override Task OnDisconnectedAsync(Exception? exception)
+    public async Task DeleteSession(int boothId, string pollingStationId) 
     {
-        string connectionId = Context.ConnectionId;
-        Console.WriteLine($"Client disconnected: {connectionId}. Exception: {exception?.Message}");
+        Console.WriteLine($"Deleting session for PollingStationId: {pollingStationId}, BoothId: {boothId}");
 
-        string? userIdToRemoveFrom = null;
-        foreach (var kvp in UserSessions)
+        try
         {
-            lock (kvp.Value) // Lock the specific user's list
-            {
-                if (kvp.Value.Any(s => s.sessionId == connectionId))
-                {
-                    userIdToRemoveFrom = kvp.Key;
-                    break;
-                }
-            }
+            await _pollingStationService.DeleteSession( boothId, pollingStationId);
         }
-
-        if (userIdToRemoveFrom != null && UserSessions.TryGetValue(userIdToRemoveFrom, out var sessions))
+        catch (HubException)
         {
-            lock (sessions) 
-            {
-                var removedCount = sessions.RemoveAll(s => s.sessionId == connectionId);
-                if (removedCount > 0)
-                {
-                    Console.WriteLine($"Removed {removedCount} session(s) for connection {connectionId} under user {userIdToRemoveFrom}. Remaining for user: {sessions.Count}");
-                }
-                if (sessions.Count == 0)
-                {
-                    UserSessions.TryRemove(userIdToRemoveFrom, out _);
-                    Console.WriteLine($"User {userIdToRemoveFrom} has no active sessions. Removed from UserSessions.");
-                }
-            }
+            throw;
         }
-        else
+        catch (Exception ex)
         {
-            Console.WriteLine($"Could not find user for disconnected session {connectionId} to clean up.");
+            Console.WriteLine($"Error registering session: {ex.Message}");
+            throw new HubException("Failed to register session.", ex); //Wrap the exception
         }
-
-        return base.OnDisconnectedAsync(exception);
     }
 
-    public async Task UnlockApp(string userId, string cabin)
+    public async Task UnlockApp(string pollingStationId, string cabin)
     {
-        Console.WriteLine($"UnlockApp requested by a client for User: {userId}, Cabin: {cabin}");
-        await Clients.All.UnlockApp(userId, cabin);
+        Console.WriteLine($"UnlockApp requested by a client polling station: {pollingStationId}, Cabin: {cabin}");
+        await Clients.All.UnlockApp(pollingStationId, cabin);
     }
 }

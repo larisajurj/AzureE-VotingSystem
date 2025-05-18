@@ -7,7 +7,7 @@ using System;
 using System.Net;
 using System.Threading.Tasks;
 
-public class PollingStationRepository : IRepository<PollingStation, int>
+public class PollingStationRepository : IRepository<PollingStation, string>
 {
     private readonly Container _container;
 
@@ -49,7 +49,7 @@ public class PollingStationRepository : IRepository<PollingStation, int>
         }
     }
 
-    public async Task<PollingStation?> GetById(int entityId)
+    public async Task<PollingStation?> GetById(string entityId)
     {
         string cosmosId = entityId.ToString(); // Convert int to string for Cosmos DB ID
 
@@ -94,7 +94,7 @@ public class PollingStationRepository : IRepository<PollingStation, int>
         }
     }
 
-    public async Task<bool> Delete(int entityId)
+    public async Task<bool> Delete(string entityId)
     {
         string cosmosId = entityId.ToString(); // Convert int to string for Cosmos DB ID
 

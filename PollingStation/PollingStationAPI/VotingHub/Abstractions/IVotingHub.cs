@@ -2,9 +2,9 @@
 
 public interface IVotingHub 
 {
-    Task UnlockApp(string userId, string cabin);
-    Task<int> RegisterSession(string userId, string sessionId);
-    Task OnDisconnectedAsync(Exception exception);
+    Task UnlockApp(string pollingStationId, string cabin);
+    Task<int> RegisterSession(string sessionId, string pollingStationId);
+    Task DeleteSession(int boothId, string sessionId, string pollingStationId);
 
 
 }

@@ -28,7 +28,7 @@ public static class Installer
 				databaseName
         ));
         // Register the repository as a scoped service
-        services.AddScoped<IRepository<PollingStation, int>>(s =>
+        services.AddScoped<IRepository<PollingStation, string>>(s =>
         {
             var client = s.GetRequiredService<CosmosClient>();
             return new PollingStationRepository(client);
