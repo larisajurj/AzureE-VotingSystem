@@ -7,5 +7,6 @@ public interface IPollingStationClient
 {
     void SetUser(ClaimsPrincipal user);
     Task<PollingStation?> GetStationById(string pollingStationId);
+    Task<Booth?> GetBoothById(string pollingStationId, int boothId);
 
 }

@@ -12,5 +12,6 @@ public interface IPollingStationService
     public Task<Booth> AddBooth(string pollingStationId);
     public Task<Booth> GetBooth(string pollingStationId, int boothId);
     public Task<PollingStation> GetPollingStation(string pollingStationId);
+    public Task<Booth> UpdateStatusBooth(string pollingStationId, int boothId, string state);
 
 }

@@ -60,4 +60,27 @@ public class PollingStationClient : IPollingStationClient
         }
         else return null;
     }
+
+    public async Task<Booth?> GetBoothById(string pollingStationId, int boothId)
+    {
+        var client = this.clientFactory.CreateClient(this.clientName);
+        //client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+        if (user != null)
+        {
+            try
+            {
+                //var token = await tokenProvider.GetAccessTokenAsync(user);
+                //client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                var result = await client.GetAsync($"/api/PollingStation/{pollingStationId}/booth/{boothId}");
+                var content = await result.Content.ReadFromJsonAsync<Booth>();
+                return content;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+        else return null;
+    }
 }

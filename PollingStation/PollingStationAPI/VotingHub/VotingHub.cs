@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Routing.Constraints;
 using Microsoft.AspNetCore.SignalR;
+using PollingStationAPI.Data.Models;
 using PollingStationAPI.Service.Services.Abstractions;
 using PollingStationAPI.VotingHub.Abstractions;
 
@@ -54,6 +55,9 @@ public class VotingHub : Hub<IVotingHub>
     public async Task UnlockApp(string pollingStationId, string cabin)
     {
         Console.WriteLine($"UnlockApp requested by a client polling station: {pollingStationId}, Cabin: {cabin}");
+        int cabinNr = Int32.Parse(cabin);
+
+        await _pollingStationService.UpdateStatusBooth(pollingStationId, cabinNr, "unlocked");
         await Clients.All.UnlockApp(pollingStationId, cabin);
     }
 }

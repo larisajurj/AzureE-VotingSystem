@@ -92,7 +92,7 @@ public class PollingStationController : ControllerBase
         }
     }
 
-    [HttpGet("{pollingStationId}/booths")]
+    [HttpGet("{pollingStationId}/booth/{boothId}")]
     public async Task<IActionResult> GetBooth(string pollingStationId, int boothId)
     {
         try

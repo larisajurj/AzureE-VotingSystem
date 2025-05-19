@@ -5,6 +5,7 @@
 @using Microsoft.AspNetCore.Components.Server.Circuits
 @using Microsoft.AspNetCore.SignalR
 @using Microsoft.AspNetCore.SignalR.Client
+@using VotingApp.Models
 @using VotingApp.Services
 @using VotingApp.Services.Abstractions
 
@@ -14,34 +15,45 @@
 @inject IUserOnlineService UserOnlineService
 @inject CircuitHandlerService CircuitHandlerService
 @inject SignalRService VotingService
+@inject IPollingStationClient PollingStationClient
 
-
-<PageTitle>Home</PageTitle>
-<div class="content">
-    <div class="card">
-        <div class="card-header">
-            <h1>Hello, world!</h1>
+@if (IsLocked || IsUnlocking)
+{
+    <div class="locked-screen text-center @(IsUnlocking ? "unlocking" : "")">
+        <div class="padlock-icon">
+            <i class="polling-station-icon fa-solid fa-lock"></i>
         </div>
-        <div class="card-body">
-            Welcome to your new app
-            <p>Your Session ID: @UserOnlineService.CircuitId</p>
 
-            <h3>Your assigned cabin: @UserOnlineService.CabinNumber</h3>
-            @if (!string.IsNullOrEmpty(initializationError))
-            {
-                <p style="color: red;">Error: @initializationError</p>
-            }
+        <h2>Această cabină este blocată</h2>
+        <p>Este necesară intervenția unui membru a comisiei pentru a putea vota.</p>
+
+        <button @onclick="unlockTest">Apasa</button>
+    </div>
+}
+else
+{
+    <div class="content">
+        <div class="card">
+            <div class="card-header">
+                <h1>You can vote!</h1>
+            </div>
+            <div class="card-body">
+                <p>Your Session ID: @UserOnlineService.CircuitId</p>
+            </div>
         </div>
     </div>
-</div>
+}
 
 @code {
     private HubConnection? _hubConnection;
     private string? _sessionId;
     private string _pollingStationId = "2"; 
     private string _assignedCabin = string.Empty;
+    private Booth? booth;
     private bool _isConnected = false;
     private string? initializationError;
+    private bool IsLocked = true;
+    private bool IsUnlocking = false;
 
     protected override async Task OnInitializedAsync()
     {
@@ -49,6 +61,7 @@
         VotingService.OnAppUnlocked += HandleAppUnlockedFromServer;
         VotingService.OnConnectionStateChanged += UpdateConnectionState;
         _sessionId = CircuitHandlerService.CircuitId;
+        PollingStationClient.SetUser(new ClaimsPrincipal());
         if (string.IsNullOrEmpty(_sessionId))
         {
             Console.WriteLine("Session ID not available immediately in OnInitializedAsync.");
@@ -77,6 +90,9 @@
             if (!string.IsNullOrEmpty(cabin) && !cabin.StartsWith("Error:"))
             {
                 _assignedCabin = cabin;
+                var cabinNr = Int32.Parse(cabin);
+                booth = await PollingStationClient?.GetBoothById(_pollingStationId, cabinNr);
+                IsLocked = booth?.Status == "locked";
                 UserOnlineService.Connect(_sessionId, _assignedCabin, _pollingStationId); // Connect UserOnlineService *after* getting cabin
                 Console.WriteLine($"Component: Registered session {_sessionId}, Polling Station: {_pollingStationId}, Got Cabin: {_assignedCabin}");
             }
@@ -159,9 +175,32 @@
         }
     }
 
-    private void HandleAppUnlockedFromServer(string unlockedUserId, string unlockedCabin)
+    private async void HandleAppUnlockedFromServer(string unlockedPollingStation, string unlockedCabin)
     {
         // This event is raised when ANY app is unlocked.
+        var cabinNr = Int32.Parse(_assignedCabin);
+        booth = await PollingStationClient?.GetBoothById(_pollingStationId, cabinNr);
+        if (unlockedPollingStation == _pollingStationId && unlockedCabin == booth?.Id.ToString() && booth.Status == "unlocked")
+        {
+            IsUnlocking = true;
+            InvokeAsync(StateHasChanged);
+
+            await Task.Delay(1000); // let animation play
+            IsLocked = false;
+            IsUnlocking = false;
+            InvokeAsync(StateHasChanged);
+        }
         InvokeAsync(StateHasChanged);
+    }
+
+    private async void unlockTest()
+    {
+        IsUnlocking = true;
+        StateHasChanged();
+
+        await Task.Delay(1000); // let animation play
+        IsLocked = false;
+        IsUnlocking = false;
+        StateHasChanged();
     }
 }

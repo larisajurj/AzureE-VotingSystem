@@ -1,0 +1,33 @@
+﻿body {
+}
+.padlock-icon {
+    font-size: 100px;
+    color: var(--selected-background-color);
+}
+
+.locked-screen {
+    transition: opacity 0.5s ease;
+    opacity: 1;
+}
+
+    .locked-screen.unlocking {
+        animation: unlockFadeOut 1s forwards;
+    }
+
+@keyframes unlockFadeOut {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.1) rotate(5deg);
+        opacity: 0.5;
+    }
+
+    100% {
+        transform: scale(0.8) rotate(-5deg);
+        opacity: 0;
+    }
+}
+

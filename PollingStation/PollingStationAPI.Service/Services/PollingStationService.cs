@@ -104,6 +104,25 @@ public class PollingStationService : IPollingStationService
 
     }
 
+    public async Task<Booth> UpdateStatusBooth(string pollingStationId, int boothId, string state)
+    {
+        PollingStation? pollingStation = await _repository.GetById(pollingStationId);
+        if (pollingStation == null)
+        {
+            throw new NotFoundException($"Polling station '{pollingStationId}' not found.");
+        }
+        var booth = pollingStation.Booths.Where(b => b.Id.Equals(boothId)).FirstOrDefault();
+
+        if (booth == null)
+        {
+            throw new NotFoundException($"Booth '{boothId}' not found.");
+        }
+        booth.Status = state;
+        await _repository.Update(pollingStation);
+
+        return booth;
+
+    }
     public async Task<PollingStation> GetPollingStation(string pollingStationId)
     {
         PollingStation? pollingStation = await _repository.GetById(pollingStationId);
@@ -139,6 +158,7 @@ public class PollingStationService : IPollingStationService
         }
 
         booth.SessionId = sessionId;
+        booth.Status = "locked";
         await _repository.Update(pollingStation);
 
         return booth;
