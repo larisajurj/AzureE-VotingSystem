@@ -20,7 +20,7 @@ public class SignalRService : IAsyncDisposable
 
     public SignalRService(IConfiguration configuration) 
     {
-        var apiURL = configuration.GetConnectionString("PollingStationAPI");
+        var apiURL = configuration["ClientConfigurations:PollingStationClient:BaseURL"];
         _hubUrl = $"{apiURL}/voting";
     }
 
@@ -114,16 +114,12 @@ public class SignalRService : IAsyncDisposable
         {
             try
             {
-                // Assuming your hub has a method like "UnregisterSession" or "ClientDisconnected"
-                // It should take identifiers to know which session to clean up.
                 Console.WriteLine($"SignalRService: Requesting to unregister session. CircuitId: {circuitId}, Cabin: {cabinNumber}, PS: {pollingStationId}");
                 await _hubConnection.InvokeAsync("DeleteSession", cabinNumber, pollingStationId);
-                // If this is the current session being deleted, update local state
+
                 if (circuitId == _currentCircuitId)
                 {
                     _assignedCabin = null;
-                    // Optionally, stop the connection if this client instance should no longer be active
-                    // await StopAsync();
                 }
             }
             catch (Exception ex)

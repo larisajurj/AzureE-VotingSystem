@@ -6,6 +6,7 @@ using VotingApp.Components;
 using VotingApp.Services;
 using BlazorCircuitHandler.Services;
 using Microsoft.AspNetCore.Components.Server.Circuits;
+using VotingApp.Services.Abstractions;
 var builder = WebApplication.CreateBuilder(args);
 
 JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
@@ -32,10 +33,8 @@ builder.Services.AddRazorComponents()
 builder.Services.AddControllersWithViews().AddMicrosoftIdentityUI();
 builder.Services.AddRazorPages();
 builder.Services.AddHttpClient();
-builder.Services.AddScoped<SignalRService>();
-builder.Services.AddScoped<CircuitHandlerService>();
-builder.Services.AddScoped<CircuitHandler>(sp => sp.GetRequiredService<CircuitHandlerService>());
-builder.Services.AddScoped<IUserOnlineService, UserOnlineService>();
+builder.Services.AddSignalRSessionServices(builder.Configuration);
+builder.Services.AddPollingStationClient(builder.Configuration);
 
 var app = builder.Build();
 

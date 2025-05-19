@@ -1,5 +1,5 @@
 ﻿using Microsoft.AspNetCore.Components.Server.Circuits;
-using VotingApp.Services;
+using VotingApp.Services.Abstractions;
 
 
 namespace BlazorCircuitHandler.Services;
@@ -25,7 +25,7 @@ public class CircuitHandlerService : CircuitHandler
     {
         if (CircuitId == circuit.Id)
         {
-            await _userOnlineService.DisconnectAsync(circuit.Id); // Call the async version
+            await _userOnlineService.DisconnectAsync(circuit.Id);
             CircuitId = null;
         }
         await base.OnCircuitClosedAsync(circuit, cancellationToken);

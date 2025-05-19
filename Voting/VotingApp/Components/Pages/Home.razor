@@ -6,6 +6,7 @@
 @using Microsoft.AspNetCore.SignalR
 @using Microsoft.AspNetCore.SignalR.Client
 @using VotingApp.Services
+@using VotingApp.Services.Abstractions
 
 @attribute [StreamRendering]
 @rendermode InteractiveServer
@@ -22,7 +23,7 @@
             <h1>Hello, world!</h1>
         </div>
         <div class="card-body">
-            Welcome to your new app.
+            Welcome to your new app
             <p>Your Session ID: @UserOnlineService.CircuitId</p>
 
             <h3>Your assigned cabin: @UserOnlineService.CabinNumber</h3>

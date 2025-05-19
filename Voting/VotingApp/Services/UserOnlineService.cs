@@ -1,4 +1,6 @@
-﻿namespace VotingApp.Services
+﻿using VotingApp.Services.Abstractions;
+
+namespace VotingApp.Services
 {
     public class UserOnlineService : IUserOnlineService
     {
@@ -6,6 +8,8 @@
         public string? PollingStationId { get; private set; } // Use private setters if set only internally
         public string? CabinNumber { get; private set; }
         public string? CircuitId { get; private set; }
+        public event Action? OnChange;
+
         private SignalRService SignalRService { get; } // Readonly after constructor
 
         public UserOnlineService(SignalRService signalRService)
@@ -18,6 +22,7 @@
             PollingStationId = pollingStationId;
             CircuitId = circuitId;
             CabinNumber = cabinNumber;
+            NotifyStateChanged();
             Console.WriteLine($"UserOnlineService: Connected circuit {CircuitId}, PS {PollingStationId}, Cabin {CabinNumber}");
         }
 
@@ -33,11 +38,20 @@
                 PollingStationId = null;
                 CabinNumber = null;
                 CircuitId = null;
+                NotifyStateChanged();
             }
             else
             {
                 Console.WriteLine($"UserOnlineService: Attempted to disconnect circuit {circuitId}, but it was not the active one or not fully connected.");
             }
         }
+
+        private void NotifyStateChanged()
+        {
+            Console.WriteLine("NotifyStateChanged() triggered");
+            OnChange?.Invoke();
+        }
+
+
     }
 }

@@ -1,5 +1,10 @@
 ﻿@inherits LayoutComponentBase
+@attribute [StreamRendering]
 @using System.Globalization
+@using System.Security.Claims
+@using VotingApp.Models
+@using VotingApp.Services.Abstractions
+@inject IPollingStationClient PollingStationClient
 
 <div class="page">
     <div class="sidebar">
@@ -9,7 +14,7 @@
     <main>
         <div class="top-row px-4">
             <div class="top-menu">
-                <span class="toolbar-title-election-badge">nr. 113 Strada Steagului</span>
+                <span class="toolbar-title-election-badge">nr. @pollingStation?.Id @pollingStation?.Name</span>
                 <span class="text-muted">@DateTime.Now.ToString("dd MMM yyyy", new CultureInfo("ro-RO"))</span>
             </div>
             <a class="external-link-button" href="MicrosoftIdentity/Account/SignOut">Log out</a>
@@ -20,3 +25,23 @@
         </article>
     </main>
 </div>
+
+@code{
+    private string _pollingStationId = "2";
+    private PollingStation? pollingStation ;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            PollingStationClient.SetUser(new ClaimsPrincipal());
+            pollingStation = await PollingStationClient.GetStationById(_pollingStationId);
+            Console.WriteLine(pollingStation);
+
+        }catch (Exception ex) // Catch exceptions from InitializeAndRegisterAsync
+        {
+            Console.WriteLine($"MainLayout: Initialization error: {ex.Message}");
+        }
+    }
+
+}

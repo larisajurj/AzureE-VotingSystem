@@ -1,4 +1,10 @@
-﻿<div class="top-row ps-3 navbar">
+﻿@using VotingApp.Services.Abstractions
+@inject IUserOnlineService UserOnlineService
+@inject IPollingStationClient PollingStationClient
+@attribute [StreamRendering]
+@rendermode InteractiveServer
+
+<div class="top-row ps-3 navbar">
     <div class="container-fluid">
         <a class="navbar-brand" href="">
             <i class="polling-station-icon fa-solid fa-person-booth"></i>
@@ -15,7 +21,7 @@
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
                 <i class="polling-station-icon navmenu-icon fa-solid fa-house"></i>
-                <span class="title">Acasă</span>
+                <span class="title">@(UserOnlineService.CabinNumber ?? "Neînregistrat")</span>
             </NavLink>
         </div>
         <div class="nav-item px-3">
@@ -34,6 +40,18 @@
     private bool collapseNavMenu = true;
 
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    protected override void OnInitialized()
+    {
+        UserOnlineService.OnChange += StateHasChanged;
+        Console.WriteLine("NavMenu subscribed to OnChange");
+    }
+
+    public void Dispose()
+    {
+        UserOnlineService.OnChange -= StateHasChanged;
+        Console.WriteLine("NavMenu unsubscribed from OnChange");
+    }
 
     private void ToggleNavMenu()
     {
