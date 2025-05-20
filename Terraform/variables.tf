@@ -42,14 +42,12 @@ variable "polling_station_app_name" {
 variable "polling_station_app_snet_name" {
   type = string
 }
-#Polling Station Fn
-variable "polling_station_fn_name" {
+
+#Polling Station API
+variable "polling_station_api_name" {
   type = string
 }
 
-variable "polling_station_func_snet_name" {
-  type = string
-}
 
 #Polling Station Db
 variable "polling_station_db_name" {

@@ -1,0 +1,12 @@
+[
+  {
+    "name": "ConnectionStrings__PollingStationAPI",
+    "value": "https://polling-station-api.azurewebsites.net/",
+    "slotSetting": false
+  },
+  {
+    "name": "DetailedErrors",
+    "value": "true",
+    "slotSetting": false
+  }
+]

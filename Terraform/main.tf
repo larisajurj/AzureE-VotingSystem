@@ -15,9 +15,8 @@ terraform {
       version = "3.3.2"
     }
   }
-
+  required_version = ">= 1.1.0"
   backend "azurerm" {}
-  required_version = "1.12.0"
 }
 
 provider "azurerm" {
@@ -51,18 +50,19 @@ resource "azurerm_resource_group" "eVoting_rg" {
 #}
 #
 #Create the Web Apps
-#module "web-app" {
-#  source = "./modules/web-app"
-#  depends_on = [
-#    azurerm_resource_group.eVoting_rg,
-#  ]
-#
-#  app_asp_name                = var.app_asp_name
-#  electoral_register_app_name = var.electoral_register_app_name
-#  resource_group              = var.eVoting_rg_name
-#  polling_station_app_name    = var.polling_station_app_name
-#  voting_app_name             = var.voting_app_name
-#}
+module "web-app" {
+  source = "./modules/web-app"
+  depends_on = [
+    azurerm_resource_group.eVoting_rg,
+  ]
+
+  app_asp_name                = var.app_asp_name
+  electoral_register_app_name = var.electoral_register_app_name
+  resource_group              = var.eVoting_rg_name
+  polling_station_app_name    = var.polling_station_app_name
+  polling_station_api_name    = var.polling_station_api_name
+  voting_app_name             = var.voting_app_name
+}
 
 module "database" {
   source = "./modules/cosmos-db"

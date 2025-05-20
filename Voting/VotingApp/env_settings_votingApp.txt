@@ -1,0 +1,27 @@
+[
+ {
+    "name": "WEBSITE_ENABLE_SYNC_UPDATE_SITE",
+    "value": "true",
+    "slotSetting": false
+  },
+  {
+    "name": "WEBSITE_RUN_FROM_PACKAGE",
+    "value": "1",
+    "slotSetting": false
+  },
+  {
+    "name": "ConnectionStrings__PollingStationAPI",
+    "value": "https://polling-station-api.azurewebsites.net",
+    "slotSetting": false
+  },
+   {
+    "name": "ClientConfigurations__PollingStationClient__BaseURL",
+    "value": "https://polling-station-api.azurewebsites.net",
+    "slotSetting": false
+  },
+  {
+    "name": "DetailedErrors",
+    "value": "true",
+    "slotSetting": false
+  }
+]

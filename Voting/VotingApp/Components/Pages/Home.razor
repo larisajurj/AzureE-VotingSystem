@@ -17,6 +17,8 @@
 @inject SignalRService VotingService
 @inject IPollingStationClient PollingStationClient
 
+@initializationError
+
 @if (IsLocked || IsUnlocking)
 {
     <div class="locked-screen text-center @(IsUnlocking ? "unlocking" : "")">
@@ -27,7 +29,6 @@
         <h2>Această cabină este blocată</h2>
         <p>Este necesară intervenția unui membru a comisiei pentru a putea vota.</p>
 
-        <button @onclick="unlockTest">Apasa</button>
     </div>
 }
 else

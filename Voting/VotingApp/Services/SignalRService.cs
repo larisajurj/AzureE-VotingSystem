@@ -47,7 +47,7 @@ public class SignalRService : IAsyncDisposable
             {
                 // options.AccessTokenProvider = ... // If using auth
             })
-            .WithAutomaticReconnect()
+            //.WithAutomaticReconnect()
             .Build();
 
         _hubConnection.On<string, string>("UnlockApp", (psId, cabin) => // psId for pollingStationId

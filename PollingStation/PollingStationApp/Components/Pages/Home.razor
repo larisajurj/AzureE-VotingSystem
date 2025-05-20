@@ -7,12 +7,15 @@
 @rendermode InteractiveServer
 @inject ITokenProvider TokenProvider
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IConfiguration Configuration
 
 <PageTitle>Home</PageTitle>
 <div class="content">
     <div class="card">
         <div class="card-header">
             <h1>Hello, world!</h1>
+            <p>@baseUrl</p>
+            <p>@exc</p>
         </div>
         <div class="card-body">
             Welcome to your new app.
@@ -24,24 +27,38 @@
 @code {
     private ClaimsPrincipal? _user;
     private HubConnection? hubConnection;
+    private string baseUrl;
+    private string exc;
 
     protected override async Task OnInitializedAsync()
     {
-        hubConnection = new HubConnectionBuilder()
-            .WithUrl("http://localhost:5062/voting") // Change to your actual hub endpoint
-            .Build();
+        baseUrl = Configuration["ConnectionStrings:PollingStationAPI"];
+        try
+        {
+            hubConnection = new HubConnectionBuilder()
+                .WithUrl($"{baseUrl}/voting") // Change to your actual hub endpoint
+                .Build();
 
-        await hubConnection.StartAsync();
+            await hubConnection.StartAsync();
+        }
+        catch (Exception e)
+        {
+            exc = e.Message;
+        }
+
     }
     protected async void OnClick(EventArgs args)
     {
         Console.WriteLine("click event");
+        exc = "click event";
         //var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         //_user = authState.User;
         //var token = await TokenProvider.GetAccessTokenAsync(_user);
         //Console.WriteLine($"Token: {token}");
-        if(hubConnection!=null)
+        if(hubConnection!=null){
+            exc = "invoked";
             await hubConnection.InvokeAsync("UnlockApp", "2", "1");
+        }
     }
     
     
