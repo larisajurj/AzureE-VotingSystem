@@ -37,7 +37,8 @@
         {
             hubConnection = new HubConnectionBuilder()
                 .WithUrl($"{baseUrl}/voting") // Change to your actual hub endpoint
-                .Build();
+                .WithAutomaticReconnect()
+            .Build();
 
             await hubConnection.StartAsync();
         }

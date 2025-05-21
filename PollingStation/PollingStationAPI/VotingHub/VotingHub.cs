@@ -55,9 +55,22 @@ public class VotingHub : Hub<IVotingHub>
     public async Task UnlockApp(string pollingStationId, string cabin)
     {
         Console.WriteLine($"UnlockApp requested by a client polling station: {pollingStationId}, Cabin: {cabin}");
-        int cabinNr = Int32.Parse(cabin);
+        try
+        {
+            int cabinNr = Int32.Parse(cabin);
 
-        await _pollingStationService.UpdateStatusBooth(pollingStationId, cabinNr, "unlocked");
-        await Clients.All.UnlockApp(pollingStationId, cabin);
+            await _pollingStationService.UpdateStatusBooth(pollingStationId, cabinNr, "unlocked");
+            await Clients.All.UnlockApp(pollingStationId, cabin);
+        }
+        catch (HubException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error unlocking app {pollingStationId}:{cabin} : {ex.Message}");
+            throw new HubException("Error unlocking app", ex); //Wrap the exception
+        }
+        
     }
 }

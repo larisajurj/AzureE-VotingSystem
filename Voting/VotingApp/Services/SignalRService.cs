@@ -47,7 +47,7 @@ public class SignalRService : IAsyncDisposable
             {
                 // options.AccessTokenProvider = ... // If using auth
             })
-            //.WithAutomaticReconnect()
+            .WithAutomaticReconnect()
             .Build();
 
         _hubConnection.On<string, string>("UnlockApp", (psId, cabin) => // psId for pollingStationId
@@ -56,9 +56,9 @@ public class SignalRService : IAsyncDisposable
             OnAppUnlocked?.Invoke(psId, cabin);
         });
 
-        _hubConnection.Closed += HandleConnectionClosed;
-        _hubConnection.Reconnecting += HandleReconnecting;
-        _hubConnection.Reconnected += HandleReconnected;
+        //_hubConnection.Closed += HandleConnectionClosed;
+        //_hubConnection.Reconnecting += HandleReconnecting;
+        //_hubConnection.Reconnected += HandleReconnected;
 
         try
         {
@@ -133,12 +133,14 @@ public class SignalRService : IAsyncDisposable
         }
     }
 
-    private Task HandleConnectionClosed(Exception? error)
+    private async Task HandleConnectionClosed(Exception? error)
     {
         Console.WriteLine($"SignalRService: Connection closed. Error: {error?.Message}");
+        if(_currentCircuitId != null && _assignedCabin != null && _currentPollingStationId != null)
+            await DeleteMySessionAsync(_currentCircuitId, _assignedCabin, _currentPollingStationId);
         _assignedCabin = null; // Clear cabin as connection is lost
         OnConnectionStateChanged?.Invoke();
-        return Task.CompletedTask;
+        //return Task.CompletedTask;
     }
 
     private Task HandleReconnecting(Exception? error)
@@ -152,6 +154,9 @@ public class SignalRService : IAsyncDisposable
     {
         Console.WriteLine($"SignalRService: Connection reconnected with new ConnectionId: {newConnectionId}. Old CircuitId was: {_currentCircuitId}");
         // Re-register using the original _currentCircuitId and _currentPollingStationId
+        if (_currentCircuitId != null && _assignedCabin != null && _currentPollingStationId != null)
+            await DeleteMySessionAsync(_currentCircuitId, _assignedCabin, _currentPollingStationId);
+
         if (!string.IsNullOrEmpty(_currentCircuitId) && !string.IsNullOrEmpty(_currentPollingStationId))
         {
             _assignedCabin = await RegisterSessionWithHubAsync(); // This will use _currentCircuitId

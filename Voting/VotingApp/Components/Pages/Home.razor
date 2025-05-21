@@ -178,30 +178,26 @@ else
 
     private async void HandleAppUnlockedFromServer(string unlockedPollingStation, string unlockedCabin)
     {
-        // This event is raised when ANY app is unlocked.
-        var cabinNr = Int32.Parse(_assignedCabin);
-        booth = await PollingStationClient?.GetBoothById(_pollingStationId, cabinNr);
-        if (unlockedPollingStation == _pollingStationId && unlockedCabin == booth?.Id.ToString() && booth.Status == "unlocked")
+        try
+        {// This event is raised when ANY app is unlocked.
+            var cabinNr = Int32.Parse(_assignedCabin);
+            booth = await PollingStationClient?.GetBoothById(_pollingStationId, cabinNr);
+            if (unlockedPollingStation == _pollingStationId && unlockedCabin == booth?.Id.ToString() && booth.Status == "unlocked")
+            {
+                IsUnlocking = true;
+                await InvokeAsync(StateHasChanged);
+
+                await Task.Delay(1000); // let animation play
+                IsLocked = false;
+                IsUnlocking = false;
+                await InvokeAsync(StateHasChanged);
+            }
+        }catch(Exception ex)
         {
-            IsUnlocking = true;
-            InvokeAsync(StateHasChanged);
+            Console.WriteLine($"Error handling app unlocked: {ex.Message}");
 
-            await Task.Delay(1000); // let animation play
-            IsLocked = false;
-            IsUnlocking = false;
-            InvokeAsync(StateHasChanged);
         }
-        InvokeAsync(StateHasChanged);
+        await InvokeAsync(StateHasChanged);
     }
 
-    private async void unlockTest()
-    {
-        IsUnlocking = true;
-        StateHasChanged();
-
-        await Task.Delay(1000); // let animation play
-        IsLocked = false;
-        IsUnlocking = false;
-        StateHasChanged();
-    }
 }
