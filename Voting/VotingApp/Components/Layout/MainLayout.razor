@@ -2,9 +2,11 @@
 @attribute [StreamRendering]
 @using System.Globalization
 @using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
 @using VotingApp.Models
 @using VotingApp.Services.Abstractions
 @inject IPollingStationClient PollingStationClient
+@inject AuthenticationStateProvider authStateProvider
 
 <div class="page">
     <div class="sidebar">
@@ -34,7 +36,9 @@
     {
         try
         {
-            PollingStationClient.SetUser(new ClaimsPrincipal());
+            var state = await authStateProvider.GetAuthenticationStateAsync();
+            var user = state.User;
+            PollingStationClient.SetUser(user);
             pollingStation = await PollingStationClient.GetStationById(_pollingStationId);
             Console.WriteLine(pollingStation);
 

@@ -1,0 +1,37 @@
+[
+  {
+    "name": "AzureAd__ClientId",
+    "value": "c017075d-c086-4562-9171-8225ea6f9cf8",
+    "slotSetting": false
+  },
+  {
+    "name": "AzureAd__ClientSecret",
+    "value": "Z6G8Q~VqyGOpDo6JmZGQaZqdyx9YQtZQBzq3yb6R",
+    "slotSetting": false
+  },
+  {
+    "name": "ConnectionStrings__PollingStationAPI",
+    "value": "https://polling-station-api.azurewebsites.net",
+    "slotSetting": false
+  },
+  {
+    "name": "DetailedErrors",
+    "value": "true",
+    "slotSetting": false
+  },
+  {
+    "name": "MICROSOFT_PROVIDER_AUTHENTICATION_SECRET",
+    "value": "pZ.8Q~BHp.TlIGKrbWe4TaZCpaiLuLyqqB94Lc3M",
+    "slotSetting": true
+  },
+  {
+    "name": "WEBSITE_AUTH_AAD_ALLOWED_TENANTS",
+    "value": "be425d4e-99ca-4e28-be78-80387b4010f0",
+    "slotSetting": false
+  },
+  {
+    "name": "WEBSITE_HTTPLOGGING_RETENTION_DAYS",
+    "value": "1",
+    "slotSetting": false
+  }
+]

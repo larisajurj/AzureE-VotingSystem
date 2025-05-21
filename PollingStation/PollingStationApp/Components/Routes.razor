@@ -17,7 +17,7 @@
                 <p role="alert">Sorry, there's nothing at this address.</p>
             </LayoutView>
         </NotFound>
-       
+
     </Router>
 </CascadingAuthenticationState>
 
@@ -29,7 +29,8 @@
         try
         {
             // Attempt to acquire the token at startup
-            //await TokenService.GetAccessTokenAsync(user);
+            var x = await TokenService.GetAccessTokenAsync(user);
+            x = "123";
         }
         catch (InvalidOperationException ex)
         {

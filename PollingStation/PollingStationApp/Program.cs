@@ -24,6 +24,7 @@ builder.Services
     })
     .EnableTokenAcquisitionToCallDownstreamApi()
     .AddInMemoryTokenCaches();
+
 builder.Services.AddScoped<ITokenProvider, TokenProvider>();
 builder.Services.AddServerSideBlazor()
     .AddMicrosoftIdentityConsentHandler();

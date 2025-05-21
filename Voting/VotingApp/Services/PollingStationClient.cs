@@ -16,19 +16,20 @@ public class PollingStationClient : IPollingStationClient
     //private readonly ITokenProvider tokenProvider;
     private readonly string clientName;
     protected ClaimsPrincipal? user;
+    private ITokenProvider tokenProvider;
 
-
-    public PollingStationClient(IHttpClientFactory clientFactory)
+    public PollingStationClient(ITokenProvider _tokenProvider, IHttpClientFactory clientFactory)
     {
         this.clientFactory = clientFactory;
         this.clientName = "PollingStationClient";
+        this.tokenProvider = _tokenProvider;
 
     }
     public void SetUser(ClaimsPrincipal user)
     {
         this.user = user;
     }
-
+    
     public async Task GetStationDetails(string userId)
     {
         var client = this.clientFactory.CreateClient(this.clientName);
@@ -41,14 +42,13 @@ public class PollingStationClient : IPollingStationClient
     public async Task<PollingStation?> GetStationById(string pollingStationId)
     {
         var client = this.clientFactory.CreateClient(this.clientName);
-        //client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         if (user != null)
         {
             try
             {
-                //var token = await tokenProvider.GetAccessTokenAsync(user);
-                //client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                var token = await tokenProvider.GetAccessTokenAsync(user);
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
                 var result = await client.GetAsync($"/api/PollingStation/{pollingStationId}");
                 var content = await result.Content.ReadFromJsonAsync<PollingStation>();
                 return content;

@@ -6,9 +6,11 @@ using System.Collections.Generic;
 using PollingStationAPI.Service.Services.Abstractions;
 using Microsoft.AspNetCore.Http.HttpResults;
 using PollingStationAPI.Service.Exceptions;
+using Microsoft.AspNetCore.Authorization;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class PollingStationController : ControllerBase
 {
     private readonly IPollingStationService _service;

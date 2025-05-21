@@ -1,4 +1,13 @@
-[
+[{
+    "name": "AzureAd__ClientId",
+    "value": "2197526d-4366-470c-9dc2-d618a76c3ddf",
+    "slotSetting": false
+  },
+  {
+    "name": "AzureAd__ClientSecret",
+    "value": "~Tj8Q~mm5DydzqQ1FivgxtkHUbexMXKxvZz7.cfJ",
+    "slotSetting": false
+  },
  {
     "name": "WEBSITE_ENABLE_SYNC_UPDATE_SITE",
     "value": "true",

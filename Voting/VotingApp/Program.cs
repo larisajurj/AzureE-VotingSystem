@@ -4,8 +4,6 @@ using Microsoft.Identity.Web;
 using Microsoft.Identity.Web.UI;
 using VotingApp.Components;
 using VotingApp.Services;
-using BlazorCircuitHandler.Services;
-using Microsoft.AspNetCore.Components.Server.Circuits;
 using VotingApp.Services.Abstractions;
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,6 +23,7 @@ builder.Services
     })
     .EnableTokenAcquisitionToCallDownstreamApi()
     .AddInMemoryTokenCaches();
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddServerSideBlazor()
     .AddMicrosoftIdentityConsentHandler();
 // Add services to the container.
@@ -35,6 +34,7 @@ builder.Services.AddRazorPages();
 builder.Services.AddHttpClient();
 builder.Services.AddSignalRSessionServices(builder.Configuration);
 builder.Services.AddPollingStationClient(builder.Configuration);
+builder.Services.AddScoped<ITokenProvider, TokenProvider>();
 
 var app = builder.Build();
 
