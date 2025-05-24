@@ -1,10 +1,5 @@
-﻿using Azure;
-using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-using System.Data;
-using System.Net.Http.Headers;
+﻿using System.Net.Http.Headers;
 using System.Security.Claims;
-using System.Text;
 using VotingApp.Models;
 using VotingApp.Services.Abstractions;
 
@@ -29,15 +24,6 @@ public class PollingStationClient : IPollingStationClient
     {
         this.user = user;
     }
-    
-    public async Task GetStationDetails(string userId)
-    {
-        var client = this.clientFactory.CreateClient(this.clientName);
-        //client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        //var jsonString = JsonConvert.SerializeObject();
-        //var stringContent = new StringContent(jsonString, Encoding.UTF8, "application/json");
-        //var result = await client.PostAsync($"employer/searchDistinctEmployers/{databron}", stringContent);
-    }
 
     public async Task<PollingStation?> GetStationById(string pollingStationId)
     {
@@ -61,17 +47,62 @@ public class PollingStationClient : IPollingStationClient
         else return null;
     }
 
-    public async Task<Booth?> GetBoothById(string pollingStationId, int boothId)
+    public async Task<PollingStation?> GetStationByUserId()
     {
         var client = this.clientFactory.CreateClient(this.clientName);
-        //client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
 
         if (user != null)
         {
             try
             {
-                //var token = await tokenProvider.GetAccessTokenAsync(user);
-                //client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                var committeeMemberId = user.FindFirst("oid")?.Value;
+                var token = await tokenProvider.GetAccessTokenAsync(user);
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                var result = await client.GetAsync($"/api/PollingStation/ByUserId/{committeeMemberId}");
+                var content = await result.Content.ReadFromJsonAsync<PollingStation>();
+                return content;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+        else return null;
+    }
+
+    public async Task<CommitteeMember?> GetCommitteeMember()
+    {
+        var client = this.clientFactory.CreateClient(this.clientName);
+
+        if (user != null)
+        {
+            try
+            {
+                var committeeMemberId = user.FindFirst("oid")?.Value;
+                var token = await tokenProvider.GetAccessTokenAsync(user);
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                var result = await client.GetAsync($"/api/CommitteeMember/{committeeMemberId}");
+                var content = await result.Content.ReadFromJsonAsync<CommitteeMember>();
+                return content;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+        else return null;
+    }
+
+    public async Task<Booth?> GetBoothById(string pollingStationId, int boothId)
+    {
+        var client = this.clientFactory.CreateClient(this.clientName);
+
+        if (user != null)
+        {
+            try
+            {
+                var token = await tokenProvider.GetAccessTokenAsync(user);
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
                 var result = await client.GetAsync($"/api/PollingStation/{pollingStationId}/booth/{boothId}");
                 var content = await result.Content.ReadFromJsonAsync<Booth>();
                 return content;

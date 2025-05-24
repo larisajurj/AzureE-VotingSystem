@@ -7,10 +7,11 @@ using PollingStationAPI.Service.Services.Abstractions;
 using Microsoft.AspNetCore.Http.HttpResults;
 using PollingStationAPI.Service.Exceptions;
 using Microsoft.AspNetCore.Authorization;
+using PollingStationAPI.Data.Models;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
+//[Authorize]
 public class PollingStationController : ControllerBase
 {
     private readonly IPollingStationService _service;
@@ -120,6 +121,40 @@ public class PollingStationController : ControllerBase
         try
         {
             var pollingStation = await _service.GetPollingStation(pollingStationId);
+            return Ok(pollingStation);
+        }
+        catch (NotFoundException ex)
+        {
+            return NotFound(ex.Message);
+
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(ex.Message);
+
+        }
+    }
+
+    [HttpPut("{pollingStationId}")]
+    public async Task<IActionResult> UpdatePollingStation(string pollingStationId, [FromBody] PollingStation station)
+    {
+        if (pollingStationId != station.Id)
+            return BadRequest("ID in URL and body do not match.");
+
+        var updated = await _service.UpdateAsync(station);
+
+        if (updated == null)
+            return NotFound($"PollingStation with ID {pollingStationId} not found.");
+
+        return Ok(updated);
+    }
+
+    [HttpGet("ByUserId/{userId}")]
+    public async Task<IActionResult> GetPollingStationByUserId(string userId)
+    {
+        try
+        {
+            var pollingStation = await _service.GetPollingStationByUserId(userId);
             return Ok(pollingStation);
         }
         catch (NotFoundException ex)

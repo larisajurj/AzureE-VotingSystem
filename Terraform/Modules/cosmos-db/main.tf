@@ -37,6 +37,15 @@ resource "azurerm_cosmosdb_sql_container" "cosmos_polling_station_sql_container"
   partition_key_paths   = ["/id"]
 }
 
+# Store information about committee members
+resource "azurerm_cosmosdb_sql_container" "cosmos_committee_member_sql_container" {
+  name                  = "CommitteeMember"
+  resource_group_name   = var.resource_group
+  account_name          = azurerm_cosmosdb_account.cosmos_acc.name
+  database_name         = azurerm_cosmosdb_sql_database.cosmos_sql_database.name
+  partition_key_paths   = ["/id"]
+}
+
 # Store information about voting presence
 resource "azurerm_cosmosdb_sql_container" "cosmos_summary_sql_container" {
   name                  = "Presence"

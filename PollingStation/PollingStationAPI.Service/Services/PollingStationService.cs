@@ -48,23 +48,6 @@ public class PollingStationService : IPollingStationService
             Name = "Strada Steagului",
             MaxBooths = 2,
             Siruta = 1,
-            CommitteeMember = new List<CommitteeMember>
-    {
-        new CommitteeMember
-        {
-            Id = Guid.NewGuid(),
-            Name = "Alice Johnson",
-            Role = "Chairperson",
-            Email = "alice.johnson@example.com"
-        },
-        new CommitteeMember
-        {
-            Id = Guid.NewGuid(),
-            Name = "Bob Smith",
-            Role = "Secretary",
-            Email = "bob.smith@example.com"
-        }
-    }
         };
 
         await _repository.Add(pollingStation);
@@ -123,6 +106,7 @@ public class PollingStationService : IPollingStationService
         return booth;
 
     }
+
     public async Task<PollingStation> GetPollingStation(string pollingStationId)
     {
         PollingStation? pollingStation = await _repository.GetById(pollingStationId);
@@ -162,5 +146,22 @@ public class PollingStationService : IPollingStationService
         await _repository.Update(pollingStation);
 
         return booth;
+    }
+
+    public async Task<PollingStation> GetPollingStationByUserId(string userId)
+    {
+        var pollingStations = await _repository.Filter(ps => ps.CommitteeMemberIds.Contains(userId));
+        if (pollingStations == null || pollingStations.Count() == 0)
+        {
+            throw new NotFoundException($"Polling station associated with '{userId}' not found.");
+        }
+        var pollingStation = pollingStations.FirstOrDefault();
+
+        return pollingStation ?? throw new NotFoundException($"Polling station associated with '{userId}' not found.");
+    }
+
+    public async Task<PollingStation?> UpdateAsync(PollingStation entity)
+    {
+        return await _repository.Update(entity);
     }
 }

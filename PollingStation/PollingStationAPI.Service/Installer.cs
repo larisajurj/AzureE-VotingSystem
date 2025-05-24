@@ -9,7 +9,6 @@ public static class Installer
     public static void AddAPIServices(this IServiceCollection services)
     {
         services.AddScoped<IPollingStationService, PollingStationService>();
+        services.AddScoped<ICommitteeMemberService, CommitteeMemberService>();
     }
-
-
 }

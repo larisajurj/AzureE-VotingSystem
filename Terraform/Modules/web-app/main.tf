@@ -44,6 +44,8 @@ resource "azurerm_linux_web_app" "polling_station_api" {
     application_stack  {
       dotnet_version = "9.0"
     }
+    
+    
   }
 }
 
@@ -55,6 +57,8 @@ resource "azurerm_linux_web_app" "polling_station_app" {
   service_plan_id     = azurerm_service_plan.web_app_service_plan.id
 
   app_settings = {
+    ConnectionStrings__PollingStationAPI = "https://${lower(azurerm_linux_web_app.polling_station_api.name)}.azurewebsites.net"
+    DetailedErrors = true
   }
 
   site_config {
@@ -75,6 +79,9 @@ resource "azurerm_linux_web_app" "voting_app" {
   service_plan_id     = azurerm_service_plan.web_app_service_plan.id
 
   app_settings = {
+    ClientConfigurations__PollingStationClient__BaseURL = "https://${lower(azurerm_linux_web_app.polling_station_api.name)}.azurewebsites.net"
+    ConnectionStrings__PollingStationAPI = "https://${lower(azurerm_linux_web_app.polling_station_api.name)}.azurewebsites.net"
+    DetailedErrors = true
   }
 
   site_config {

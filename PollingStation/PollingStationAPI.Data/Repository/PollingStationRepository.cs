@@ -6,6 +6,8 @@ using Microsoft.Azure.Cosmos;
 using System;
 using System.Net;
 using System.Threading.Tasks;
+using System.Linq.Expressions;
+using Microsoft.Azure.Cosmos.Linq;
 
 public class PollingStationRepository : IRepository<PollingStation, string>
 {
@@ -114,5 +116,20 @@ public class PollingStationRepository : IRepository<PollingStation, string>
             // Depending on how strict you want to be, you might return false or re-throw
             return false; // Or throw;
         }
+    }
+
+    public async Task<IEnumerable<PollingStation>> Filter(Expression<Func<PollingStation, bool>> predicate)
+    {
+        var queryable = _container.GetItemLinqQueryable<PollingStation>(allowSynchronousQueryExecution: false);
+        var filteredQuery = queryable.Where(predicate).ToFeedIterator();
+
+        var results = new List<PollingStation>();
+        while (filteredQuery.HasMoreResults)
+        {
+            var response = await filteredQuery.ReadNextAsync();
+            results.AddRange(response);
+        }
+
+        return results;
     }
 }
