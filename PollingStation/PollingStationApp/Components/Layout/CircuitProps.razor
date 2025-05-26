@@ -1,0 +1,36 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using PollingStationApp.Models
+@using PollingStationApp.Services.Abstractions
+@inject IPollingStationClient PollingStationClient
+@inject AuthenticationStateProvider authStateProvider
+@inject IUserOnlineService UserOnlineService
+
+@code {
+    private PollingStation? pollingStation { get; set; }
+    private CommitteeMember? committeeMember { get; set; }
+
+
+    protected async override Task OnInitializedAsync()
+    {
+
+        var state = await authStateProvider.GetAuthenticationStateAsync();
+        var user = state.User;
+        PollingStationClient.SetUser(user);
+        var oid = user.FindFirst("oid")?.Value;
+
+        if (!string.IsNullOrEmpty(oid))
+        {
+
+            pollingStation = await PollingStationClient.GetStationByUserId();
+            UserOnlineService.PollingStation = pollingStation;
+            committeeMember = await PollingStationClient.GetCommitteeMember();
+            UserOnlineService.CommitteeMember = committeeMember;
+            UserOnlineService.MarkInitialized();
+        }
+
+        // Console.WriteLine($"CircuitProps using UserOnlineService [{UserOnlineService.InstanceId}]");
+
+        Console.WriteLine(pollingStation);
+        StateHasChanged();
+    }
+}

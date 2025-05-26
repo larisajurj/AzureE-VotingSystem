@@ -1,4 +1,8 @@
-﻿<div class="top-row ps-3 navbar">
+﻿@using PollingStationApp.Models
+@using PollingStationApp.Services.Abstractions
+@inject IUserOnlineService UserOnlineService
+
+<div class="top-row ps-3 navbar">
     <div class="container-fluid">
         <a class="navbar-brand" href="">
             <i class="polling-station-icon fa-solid fa-person-booth"></i>
@@ -18,6 +22,15 @@
                 <span class="title">Acasă</span>
             </NavLink>
         </div>
+        @if (member != null && member.Role == "President")
+        {
+            <div class="nav-item px-3">
+                <NavLink class="nav-link" href="counter" Match="NavLinkMatch.All">
+                    <i class="polling-station-icon navmenu-icon fa-solid fa-person-booth"></i>
+                    <span class="title">Status Cabine</span>
+                </NavLink>
+            </div>
+        }
         <div class="nav-item px-3">
             <span class="text-muted">Cum se folosește aplicația?</span>
         </div>
@@ -32,11 +45,36 @@
 
 @code {
     private bool collapseNavMenu = true;
+    private CommitteeMember? member;
 
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
 
     private void ToggleNavMenu()
     {
         collapseNavMenu = !collapseNavMenu;
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+
+            UserOnlineService.OnChange += OnUserOnlineServiceChanged;
+            await UserOnlineService.InitializationComplete.Task;
+            member = UserOnlineService.CommitteeMember;
+            StateHasChanged();
+            Console.WriteLine($"NavMenu using UserOnlineService [{UserOnlineService.InstanceId}]");
+            Console.WriteLine(member);
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"MainLayout: Initialization error: {ex.Message}");
+        }
+    }
+
+    private async void OnUserOnlineServiceChanged()
+    {
+        await InvokeAsync(StateHasChanged);
     }
 }

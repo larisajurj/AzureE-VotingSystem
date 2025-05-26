@@ -6,6 +6,11 @@ using PollingStationApp.Data.Helpers.Abstractions;
 using PollingStationApp.Data.Helpers;
 using Microsoft.Identity.Web.UI;
 using PollingStationAPI.Data;
+using Blazorise;
+using Blazorise.Bootstrap5;
+using Blazorise.Icons.FontAwesome;
+using PollingStationApp.Services;
+
 var builder = WebApplication.CreateBuilder(args);
 
 JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
@@ -24,8 +29,16 @@ builder.Services
     })
     .EnableTokenAcquisitionToCallDownstreamApi()
     .AddInMemoryTokenCaches();
-
+builder.Services
+    .AddBlazorise(options =>
+    {
+        options.Immediate = true;
+    })
+    .AddBootstrap5Providers()
+    .AddFontAwesomeIcons();
 builder.Services.AddScoped<ITokenProvider, TokenProvider>();
+builder.Services.AddSignalRSessionServices(builder.Configuration);
+builder.Services.AddPollingStationClient(builder.Configuration);
 builder.Services.AddServerSideBlazor()
     .AddMicrosoftIdentityConsentHandler();
 // Add services to the container.

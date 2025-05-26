@@ -1,0 +1,147 @@
+﻿@attribute [StreamRendering]
+@rendermode InteractiveServer
+@using Blazorise
+@using Blazorise.Components
+@using Blazorise.SignaturePad
+@using PollingStationApp.Models
+@using System.Text.Json.Serialization
+
+<Container>
+    <Row class="justify-content-center">
+        <Column md="8" lg="7">
+            <Card class="shadow-sm rounded ">
+                <CardHeader class="voter-card-header">
+                    <Heading Size="HeadingSize.Is6" Muted="true" class="voter-card-main-title">Detaliile alegătorului</Heading>
+                    <Heading Size="HeadingSize.Is4" class="voter-card-name">
+                        @if (Voter != null)
+                        {
+                            @($"{Voter.FirstName} {Voter.LastName}")
+                        }
+                        else
+                        {
+                            @("N/A")
+                        }
+                    </Heading>
+                </CardHeader>
+                <CardBody>
+                    <Row>
+                        <Column md="4" class="voter-details-column">
+                            <Heading Size="HeadingSize.Is6" class="voter-data-heading">Date personale:</Heading>
+                            @if (Voter != null)
+                            {
+                                <Div>
+                                    <Paragraph><strong>Data nașterii:</strong> @Voter.DateOfBirth.ToShortDateString()</Paragraph>
+                                    <Paragraph><strong>Locul nașterii:</strong> @Voter.PlaceOfBirth</Paragraph>
+                                    <Paragraph><strong>Sex:</strong> @Voter.Gender</Paragraph>
+                                </Div>
+                            }
+                            else
+                            {
+                                <Alert Color="Color.Info" Visible="true"> 
+                                    Detaliile alegătorului nu sunt disponibile.
+                                </Alert>
+                            }
+                        </Column>
+
+                        <Column md="8" class="signature-column">
+                            <Heading Size="HeadingSize.Is6" class="signature-section-heading">Semnați mai jos:</Heading>
+                            <SignaturePad @ref="signaturePadRef"
+                                          @bind-Value="data"
+                                          class="custom-signature-pad" 
+                                          BackgroundColor="white"
+                                          MinDistance="10"
+                                          CanvasWidth="800"
+                                          CanvasHeight="300"
+                                          Shadow="Shadow.Small" />
+
+                            <Row class="justify-content-center signature-buttons-row"> 
+                                <Column ColumnSize="ColumnSize.IsAuto">
+                                    <ButtonGroup>
+                                        <Button Color="Color.Primary" Clicked="@OnUndoClicked" Disabled="showAllowVotingButton">
+                                            <Icon Name="IconName.Undo" /> Anulează ultima linie
+                                        </Button>
+                                        <Button Color="Color.Success" Clicked="@OnSendClicked" Disabled="showAllowVotingButton">
+                                            <Icon Name="IconName.Save" /> Trimite semnătura
+                                        </Button>
+                                    </ButtonGroup>
+                                </Column>
+                            </Row>
+                        </Column>
+                    </Row>
+
+                    @if (showAllowVotingButton)
+                    {
+                        // Using Bootstrap mt-4, or replace with custom SCSS class like .allow-voting-button-row
+                        <Row class="mt-4 justify-content-center">
+                            <Column ColumnSize="ColumnSize.IsAuto">
+                                <Button Size="Size.Large" Color="Color.Warning" Clicked="@OnAllowVotingClicked">
+                                    <Icon Name="IconName.CheckSquare" /> Permite votarea
+                                </Button>
+                            </Column>
+                        </Row>
+                    }
+                    else if(Voter == null)
+                    {
+                         <Alert Color="Color.Warning" Visible="true">
+                                Detaliile alegătorului sunt necesare pentru a continua.
+                         </Alert>
+                    }
+                </CardBody>
+                <CardFooter class="voter-card-footer"> 
+                    <Text Muted="true" TextAlignment="TextAlignment.Center" Small="true">
+                        Vă rugăm să vă asigurați că toate detaliile sunt corecte înainte de a continua.
+                    </Text>
+                </CardFooter>
+            </Card>
+        </Column>
+    </Row>
+</Container>
+
+@code {
+    [Parameter]
+    public RegisteredVoter Voter { get; set; }
+
+    SignaturePad signaturePadRef;
+    byte[] data;
+    bool showAllowVotingButton = false;
+
+    async Task OnUndoClicked()
+    {
+        if (signaturePadRef != null)
+        {
+            await signaturePadRef.Undo();
+        }
+    }
+
+    private void OnSendClicked()
+    {
+        if (Voter == null || Voter.Id == Guid.Empty)
+        {
+            Console.WriteLine("Voter data is not available. Cannot send signature.");
+            return;
+        }
+
+        if (data != null && data.Length > 0)
+        {
+            Console.WriteLine($"Semnătură capturată, {data.Length} bytes, pentru alegătorul: {Voter.Id}");
+            showAllowVotingButton = true;
+        }
+        else
+        {
+            Console.WriteLine("Nicio semnătură de trimis.");
+        }
+    }
+
+    private void OnAllowVotingClicked()
+    {
+        if (Voter == null || Voter.Id == Guid.Empty)
+        {
+            Console.WriteLine("Voter data is not available. Cannot allow voting.");
+            return;
+        }
+        Console.WriteLine($"Votare permisă pentru alegător: {Voter.FirstName} {Voter.LastName} (ID: {Voter.Id})");
+        showAllowVotingButton = false;
+    }
+
+    // Your RegisteredVoter class definition
+}

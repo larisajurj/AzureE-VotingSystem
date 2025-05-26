@@ -1,5 +1,9 @@
 ﻿@inherits LayoutComponentBase
 @using System.Globalization
+@using Microsoft.AspNetCore.Components.Authorization
+@using PollingStationApp.Models
+@using PollingStationApp.Services.Abstractions
+@inject IUserOnlineService UserOnlineService
 
 <div class="page">
     <div class="sidebar">
@@ -9,7 +13,12 @@
     <main>
         <div class="top-row px-4">
             <div class="top-menu">
-                <span class="toolbar-title-election-badge">nr. 113 Strada Steagului</span>
+                @if (pollingStation != null)
+                {
+                    <span class="toolbar-title-election-badge">
+                        nr. @pollingStation.Id @pollingStation.Name
+                    </span>
+                }
                 <span class="text-muted">@DateTime.Now.ToString("dd MMM yyyy", new CultureInfo("ro-RO"))</span>
             </div>
             <a class="external-link-button" href="MicrosoftIdentity/Account/SignOut">Log out</a>
@@ -20,3 +29,32 @@
         </article>
     </main>
 </div>
+
+@code {
+    private PollingStation? pollingStation;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+           
+            UserOnlineService.OnChange += OnUserOnlineServiceChanged;
+            await UserOnlineService.InitializationComplete.Task;
+            pollingStation = UserOnlineService.PollingStation;
+            StateHasChanged();
+            Console.WriteLine($"MainLayout using UserOnlineService [{UserOnlineService.InstanceId}]");
+            Console.WriteLine(pollingStation);
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"MainLayout: Initialization error: {ex.Message}");
+        }
+    }
+
+    private async void OnUserOnlineServiceChanged()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+
+}

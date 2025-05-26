@@ -1,0 +1,61 @@
+﻿// Assuming your :root variables are globally available or imported
+// If not, you might need to define them here or ensure they are accessible.
+
+// Card Header specific styles
+.voter-card-header {
+    text-align: center; // For centering header content
+
+    .voter-card-main-title {
+        // Muted is a Blazorise prop, but if you want SCSS control:
+        // color: var(--light-color); // Example if Muted prop is removed
+        margin-bottom: 0.25rem; // Equivalent to Blazorise Margin.Bottom.Is1
+    }
+
+    .voter-card-name {
+        margin-top: 0rem; // Equivalent to Blazorise Margin.Top.Is0
+        color: var(--selected-text-color);
+    }
+}
+
+.h4.voter-card-name {
+    margin-top: 0rem; // Equivalent to Blazorise Margin.Top.Is0
+    color: pink !important;
+}
+// Card Body content styles
+.voter-details-column {
+    .voter-data-heading {
+        margin-bottom: 0.75rem; // For "Date personale:"
+    }
+}
+
+.signature-column {
+    .signature-section-heading {
+        margin-top: 0rem; // For "Semnați mai jos:"
+        margin-bottom: 0.5rem;
+    }
+
+    .signature-buttons-row {
+        margin-top: 0.75rem;
+        margin-bottom: 0.5rem;
+        gap: 10px;
+
+    }
+}
+
+// SignaturePad specific styling (border, radius, responsiveness)
+.custom-signature-pad {
+    border: 1px solid var(--border-color); // Uses your CSS variable
+    border-radius: 8px;
+    max-width: 100%;
+}
+
+// Card Footer specific padding
+.voter-card-footer {
+    padding-top: 0.75rem; // Equivalent to Blazorise Padding.Is3.OnY (top)
+    padding-bottom: 0.75rem; // Equivalent to Blazorise Padding.Is3.OnY (bottom)
+}
+
+// If you want to replace Bootstrap utilities like mt-4:
+// .allow-voting-button-row {
+// margin-top: 1.5rem; // Bootstrap mt-4 equivalent
+// }

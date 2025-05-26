@@ -2,7 +2,9 @@
 @using Microsoft.AspNetCore.Components.Authorization
 @using System.Security.Claims
 @using Microsoft.AspNetCore.SignalR.Client
+@using PollingStationApp.Components.Shared
 @using PollingStationApp.Data.Helpers.Abstractions
+@using PollingStationApp.Models
 @attribute [StreamRendering]
 @rendermode InteractiveServer
 @inject ITokenProvider TokenProvider
@@ -11,17 +13,8 @@
 
 <PageTitle>Home</PageTitle>
 <div class="content">
-    <div class="card">
-        <div class="card-header">
-            <h1>Hello, world!</h1>
-            <p>@baseUrl</p>
-            <p>@exc</p>
-        </div>
-        <div class="card-body">
-            Welcome to your new app.
-            <button class="btn-primary" Color="ButtonColor.Primary" @onclick="OnClick"> Unlock app</button>
-        </div>
-    </div>
+    <VoterPopUp Voter="Voter"></VoterPopUp>
+
 </div>
 
 @code {
@@ -29,9 +22,20 @@
     private HubConnection? hubConnection;
     private string baseUrl;
     private string exc;
+    private RegisteredVoter Voter;
 
     protected override async Task OnInitializedAsync()
     {
+        Voter = new RegisteredVoter
+            {
+                LastName = "Nespecificat",
+                FirstName = "Nespecificat",
+                DateOfBirth = DateTime.MinValue,
+                PlaceOfBirth = "Nespecificat",
+                Gender = "Nespecificat",
+                PollingStationId = "N/A",
+                Id = new Guid()
+            };
         baseUrl = Configuration["ConnectionStrings:PollingStationAPI"];
         try
         {
