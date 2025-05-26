@@ -11,7 +11,7 @@ public class SignalRService : IAsyncDisposable
     private readonly string _hubUrl;
     private string? _currentCircuitId; 
     private string? _currentPollingStationId;
-    private string? _assignedCabin;
+    public string? _assignedCabin {get; set;}
 
     public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
 
@@ -91,10 +91,11 @@ public class SignalRService : IAsyncDisposable
         {
             // IMPORTANT: Ensure "RegisterSession" on the hub expects the CircuitId
             int boothNumber = await _hubConnection.InvokeAsync<int>("RegisterSession", _currentCircuitId, _currentPollingStationId);
-            var cabin = boothNumber.ToString();
-            Console.WriteLine($"SignalRService: Session registered with Hub. CircuitId: {_currentCircuitId}, PS: {_currentPollingStationId}, Cabin: {cabin}");
-            return cabin;
+            _assignedCabin = boothNumber.ToString();
+            Console.WriteLine($"SignalRService: Session registered with Hub. CircuitId: {_currentCircuitId}, PS: {_currentPollingStationId}, Cabin: {_assignedCabin}");
+            return _assignedCabin;
         }
+        
         catch (HubException hex)
         {
             Console.WriteLine($"SignalRService: HubException calling RegisterSession: {hex.Message}");
@@ -110,12 +111,12 @@ public class SignalRService : IAsyncDisposable
     // Corrected DeleteMySession - now async Task and calls a different hub method
     public async Task DeleteMySessionAsync(string circuitId, string cabinNumber, string pollingStationId)
     {
-        if (_hubConnection?.State == HubConnectionState.Connected)
+        if (_hubConnection?.State == HubConnectionState.Connected && _assignedCabin != null && pollingStationId != null && circuitId!= null)
         {
             try
             {
-                Console.WriteLine($"SignalRService: Requesting to unregister session. CircuitId: {circuitId}, Cabin: {cabinNumber}, PS: {pollingStationId}");
-                await _hubConnection.InvokeAsync("DeleteSession", cabinNumber, pollingStationId);
+                Console.WriteLine($"SignalRService: Requesting to unregister session. CircuitId: {circuitId}, Cabin: {_assignedCabin}, PS: {pollingStationId}");
+                await _hubConnection.InvokeAsync("DeleteSession", _assignedCabin, pollingStationId);
 
                 if (circuitId == _currentCircuitId)
                 {

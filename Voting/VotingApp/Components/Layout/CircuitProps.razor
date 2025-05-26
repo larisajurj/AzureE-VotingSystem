@@ -1,0 +1,42 @@
+﻿
+@using System.Globalization
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Authorization
+@using VotingApp.Factories
+@using VotingApp.Models
+@using VotingApp.Services
+@using VotingApp.Services.Abstractions
+@inject IPollingStationClient PollingStationClient
+@inject AuthenticationStateProvider authStateProvider
+@inject IUserOnlineServiceFactory UserOnlineServiceFactory
+
+@code {
+    private PollingStation? pollingStation { get; set; }
+    private CommitteeMember? committeeMember { get; set; }
+    private IUserOnlineService? UserOnlineService;
+
+
+    protected async override Task OnInitializedAsync()
+    {
+
+        var state = await authStateProvider.GetAuthenticationStateAsync();
+        var user = state.User;
+        PollingStationClient.SetUser(user);
+        var oid = user.FindFirst("oid")?.Value;
+
+        if (!string.IsNullOrEmpty(oid))
+        {
+            UserOnlineService = UserOnlineServiceFactory.GetOrCreate(oid);
+            pollingStation = await PollingStationClient.GetStationByUserId();
+            UserOnlineService.PollingStation = pollingStation;
+            committeeMember = await PollingStationClient.GetCommitteeMember();
+            UserOnlineService.CommitteeMember = committeeMember;
+            UserOnlineService.MarkInitialized();
+        }
+
+       // Console.WriteLine($"CircuitProps using UserOnlineService [{UserOnlineService.InstanceId}]");
+
+        Console.WriteLine(pollingStation);
+        StateHasChanged();
+    }
+}

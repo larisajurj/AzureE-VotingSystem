@@ -1,12 +1,16 @@
-﻿namespace VotingApp.Services.Abstractions;
+﻿using VotingApp.Models;
+
+namespace VotingApp.Services.Abstractions;
 
 public interface IUserOnlineService
 {
-    string? PollingStationId { get; }
-    string? CabinNumber { get; }
-    string? CircuitId { get; }
+    public Guid InstanceId { get; } 
+    PollingStation? PollingStation { get; set; }
+    CommitteeMember? CommitteeMember { get; set; }
+
     event Action? OnChange;
 
-    void Connect(string circuitId, string cabinNumber, string pollingStationId);
-    Task DisconnectAsync(string circuitId);
+    TaskCompletionSource<bool> InitializationComplete { get; } 
+
+    void MarkInitialized();
 }

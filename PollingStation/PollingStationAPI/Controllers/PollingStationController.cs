@@ -11,7 +11,7 @@ using PollingStationAPI.Data.Models;
 
 [ApiController]
 [Route("api/[controller]")]
-//[Authorize]
+[Authorize]
 public class PollingStationController : ControllerBase
 {
     private readonly IPollingStationService _service;

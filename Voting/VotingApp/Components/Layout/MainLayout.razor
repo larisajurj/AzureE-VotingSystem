@@ -3,10 +3,12 @@
 @using System.Globalization
 @using System.Security.Claims
 @using Microsoft.AspNetCore.Components.Authorization
+@using VotingApp.Factories
 @using VotingApp.Models
 @using VotingApp.Services.Abstractions
 @inject IPollingStationClient PollingStationClient
 @inject AuthenticationStateProvider authStateProvider
+@inject IUserOnlineServiceFactory UserOnlineServiceFactory
 
 <div class="page">
     <div class="sidebar">
@@ -16,7 +18,12 @@
     <main>
         <div class="top-row px-4">
             <div class="top-menu">
-                <span class="toolbar-title-election-badge">nr. @pollingStation?.Id @pollingStation?.Name</span>
+                @if (pollingStation != null)
+                {
+                    <span class="toolbar-title-election-badge">
+                        nr. @pollingStation.Id @pollingStation.Name
+                    </span>
+                }
                 <span class="text-muted">@DateTime.Now.ToString("dd MMM yyyy", new CultureInfo("ro-RO"))</span>
             </div>
             <a class="external-link-button" href="MicrosoftIdentity/Account/SignOut">Log out</a>
@@ -29,8 +36,8 @@
 </div>
 
 @code{
-    private string _pollingStationId = "2";
     private PollingStation? pollingStation ;
+    private IUserOnlineService? UserOnlineService;
 
     protected override async Task OnInitializedAsync()
     {
@@ -39,13 +46,28 @@
             var state = await authStateProvider.GetAuthenticationStateAsync();
             var user = state.User;
             PollingStationClient.SetUser(user);
-            pollingStation = await PollingStationClient.GetStationById(_pollingStationId);
+            var oid = user.FindFirst("oid")?.Value;
+            if (!string.IsNullOrEmpty(oid))
+            {
+                UserOnlineService = UserOnlineServiceFactory.GetOrCreate(oid);
+                UserOnlineService.OnChange += OnUserOnlineServiceChanged;
+                await UserOnlineService.InitializationComplete.Task;
+                pollingStation = UserOnlineService.PollingStation;
+                StateHasChanged();
+                Console.WriteLine($"MainLayout using UserOnlineService [{UserOnlineService.InstanceId}]");
+            }
+
             Console.WriteLine(pollingStation);
 
-        }catch (Exception ex) // Catch exceptions from InitializeAndRegisterAsync
+        }catch (Exception ex) 
         {
             Console.WriteLine($"MainLayout: Initialization error: {ex.Message}");
         }
+    }
+
+    private async void OnUserOnlineServiceChanged()
+    {
+        await InvokeAsync(StateHasChanged);
     }
 
 }

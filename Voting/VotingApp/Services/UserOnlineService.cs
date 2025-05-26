@@ -1,55 +1,33 @@
-﻿using VotingApp.Services.Abstractions;
+﻿using VotingApp.Models;
+using VotingApp.Services.Abstractions;
 
 namespace VotingApp.Services
 {
     public class UserOnlineService : IUserOnlineService
     {
+        public Guid InstanceId { get; } = Guid.NewGuid();
+        public PollingStation? PollingStation { get; set; } 
+        public CommitteeMember? CommitteeMember { get; set; }
 
-        public string? PollingStationId { get; private set; } // Use private setters if set only internally
-        public string? CabinNumber { get; private set; }
-        public string? CircuitId { get; private set; }
+
         public event Action? OnChange;
 
-        private SignalRService SignalRService { get; } // Readonly after constructor
+        public TaskCompletionSource<bool> InitializationComplete { get; } = new();
 
-        public UserOnlineService(SignalRService signalRService)
+        public UserOnlineService()
         {
-            SignalRService = signalRService;
-        }
-
-        public void Connect(string circuitId, string cabinNumber, string pollingStationId) // Corrected param order
-        {
-            PollingStationId = pollingStationId;
-            CircuitId = circuitId;
-            CabinNumber = cabinNumber;
-            NotifyStateChanged();
-            Console.WriteLine($"UserOnlineService: Connected circuit {CircuitId}, PS {PollingStationId}, Cabin {CabinNumber}");
-        }
-
-        // Renamed from DisConnect to DisconnectAsync and returns Task
-        public async Task DisconnectAsync(string circuitId)
-        {
-            // Only disconnect if the properties were set (i.e., Connect was called for this circuit)
-            if (this.CircuitId == circuitId && !string.IsNullOrEmpty(CabinNumber) && !string.IsNullOrEmpty(PollingStationId))
-            {
-                Console.WriteLine($"UserOnlineService: Disconnecting circuit {circuitId}, Cabin {CabinNumber}, PS {PollingStationId}");
-                // Pass the actual cabin and polling station ID associated with this circuit
-                await SignalRService.DeleteMySessionAsync(circuitId, CabinNumber, PollingStationId);
-                PollingStationId = null;
-                CabinNumber = null;
-                CircuitId = null;
-                NotifyStateChanged();
-            }
-            else
-            {
-                Console.WriteLine($"UserOnlineService: Attempted to disconnect circuit {circuitId}, but it was not the active one or not fully connected.");
-            }
         }
 
         private void NotifyStateChanged()
         {
             Console.WriteLine("NotifyStateChanged() triggered");
             OnChange?.Invoke();
+        }
+        public void MarkInitialized()
+        {
+            Console.WriteLine("UserOnlineService: Initialization marked complete.");
+
+            InitializationComplete.TrySetResult(true);
         }
 
 

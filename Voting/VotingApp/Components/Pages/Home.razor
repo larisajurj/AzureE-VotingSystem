@@ -5,14 +5,15 @@
 @using Microsoft.AspNetCore.Components.Server.Circuits
 @using Microsoft.AspNetCore.SignalR
 @using Microsoft.AspNetCore.SignalR.Client
+@using VotingApp.Factories
 @using VotingApp.Models
 @using VotingApp.Services
 @using VotingApp.Services.Abstractions
 
 @attribute [StreamRendering]
 @rendermode InteractiveServer
-@inject AuthenticationStateProvider AuthenticationStateProvider
-@inject IUserOnlineService UserOnlineService
+@inject AuthenticationStateProvider authStateProvider
+@inject IUserOnlineServiceFactory UserOnlineServiceFactory
 @inject CircuitHandlerService CircuitHandlerService
 @inject SignalRService VotingService
 @inject IPollingStationClient PollingStationClient
@@ -23,11 +24,11 @@
 {
     <div class="locked-screen text-center @(IsUnlocking ? "unlocking" : "")">
         <div class="padlock-icon">
-            <i class="polling-station-icon fa-solid fa-lock"></i>
+            <span class="polling-station-icon fa-solid fa-lock" style="user-select: none;"></span>
         </div>
 
-        <h2>Această cabină este blocată</h2>
-        <p>Este necesară intervenția unui membru a comisiei pentru a putea vota.</p>
+        <h2 style="user-select: none;">Această cabină este blocată</h2>
+        <p style="user-select: none;" >Este necesară intervenția unui membru a comisiei pentru a putea vota.</p>
 
     </div>
 }
@@ -39,7 +40,7 @@ else
                 <h1>You can vote!</h1>
             </div>
             <div class="card-body">
-                <p>Your Session ID: @UserOnlineService.CircuitId</p>
+                <p>Your Session ID: @CircuitHandlerService.CircuitId</p>
             </div>
         </div>
     </div>
@@ -48,26 +49,36 @@ else
 @code {
     private HubConnection? _hubConnection;
     private string? _sessionId;
-    private string _pollingStationId = "2"; 
+    private string? _pollingStationId; 
     private string _assignedCabin = string.Empty;
     private Booth? booth;
     private bool _isConnected = false;
     private string? initializationError;
     private bool IsLocked = true;
     private bool IsUnlocking = false;
+    private IUserOnlineService UserOnlineService;
 
     protected override async Task OnInitializedAsync()
     {
-
         VotingService.OnAppUnlocked += HandleAppUnlockedFromServer;
         VotingService.OnConnectionStateChanged += UpdateConnectionState;
         _sessionId = CircuitHandlerService.CircuitId;
-        PollingStationClient.SetUser(new ClaimsPrincipal());
         if (string.IsNullOrEmpty(_sessionId))
         {
             Console.WriteLine("Session ID not available immediately in OnInitializedAsync.");
+            return;
         }
+        var state = await authStateProvider.GetAuthenticationStateAsync();
+        var user = state.User;
+        PollingStationClient.SetUser(user);
+        var oid = user.FindFirst("oid")?.Value;
 
+        if (!string.IsNullOrEmpty(oid))
+        {
+            UserOnlineService = UserOnlineServiceFactory.GetOrCreate(oid);
+            _pollingStationId = UserOnlineService.PollingStation?.Id;
+            Console.WriteLine($"Home using UserOnlineService [{UserOnlineService.InstanceId}]");
+        }
         await ConnectAndRegister();
     }
 
@@ -80,7 +91,11 @@ else
             StateHasChanged();
             return;
         }
-
+        Console.WriteLine($"Home using UserOnlineService [{UserOnlineService.InstanceId}]");
+        Console.WriteLine("Start waiting");
+        await UserOnlineService.InitializationComplete.Task;
+        _pollingStationId = UserOnlineService.PollingStation?.Id;
+        Console.WriteLine("Stop waiting");
         try
         {
             initializationError = null; // Clear previous errors
@@ -94,7 +109,7 @@ else
                 var cabinNr = Int32.Parse(cabin);
                 booth = await PollingStationClient?.GetBoothById(_pollingStationId, cabinNr);
                 IsLocked = booth?.Status == "locked";
-                UserOnlineService.Connect(_sessionId, _assignedCabin, _pollingStationId); // Connect UserOnlineService *after* getting cabin
+                //UserOnlineService.Connect(_sessionId, _assignedCabin); 
                 Console.WriteLine($"Component: Registered session {_sessionId}, Polling Station: {_pollingStationId}, Got Cabin: {_assignedCabin}");
             }
             else
@@ -146,9 +161,16 @@ else
     {
         try
         {
-            await VotingService.InitializeAndRegisterAsync(_pollingStationId, _assignedCabin);
-            UserOnlineService.Connect(_sessionId, _assignedCabin, _pollingStationId);
-            Console.WriteLine($"Registered session {_sessionId} and got booth number: {_assignedCabin}");
+            if (string.IsNullOrEmpty(_pollingStationId) && string.IsNullOrEmpty(_assignedCabin) && string.IsNullOrEmpty(_sessionId))
+            {
+                await VotingService.InitializeAndRegisterAsync(_pollingStationId, _assignedCabin);
+                //UserOnlineService.Connect(_sessionId, _assignedCabin);
+                Console.WriteLine($"Registered session {_sessionId} and got booth number: {_assignedCabin}");
+            }else
+            {
+                Console.WriteLine("Not enough data to register session");
+            }
+
             StateHasChanged();
         }
         catch (Exception ex)

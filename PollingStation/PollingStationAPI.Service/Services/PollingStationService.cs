@@ -67,6 +67,7 @@ public class PollingStationService : IPollingStationService
             throw new NotFoundException($"Booth was not registered");
         }
         booth.SessionId = null;
+        booth.Status = "locked";
         await _repository.Update(pollingStation);
     }
 

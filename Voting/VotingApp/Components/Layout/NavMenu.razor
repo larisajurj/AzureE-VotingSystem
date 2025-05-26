@@ -1,6 +1,12 @@
-﻿@using VotingApp.Services.Abstractions
-@inject IUserOnlineService UserOnlineService
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using VotingApp.Factories
+@using VotingApp.Services
+@using VotingApp.Services.Abstractions
+@inject AuthenticationStateProvider authStateProvider
+@inject IUserOnlineServiceFactory UserOnlineServiceFactory
 @inject IPollingStationClient PollingStationClient
+@inject SignalRService SignalRService
+
 @attribute [StreamRendering]
 @rendermode InteractiveServer
 
@@ -21,7 +27,7 @@
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
                 <i class="polling-station-icon navmenu-icon fa-solid fa-house"></i>
-                <span class="title">Cabina nr. @(UserOnlineService.CabinNumber ?? "Neînregistrat")</span>
+                <span class="title">Cabina nr. @(SignalRService._assignedCabin ?? "Neînregistrat")</span>
             </NavLink>
         </div>
         <div class="nav-item px-3">
@@ -38,23 +44,39 @@
 
 @code {
     private bool collapseNavMenu = true;
-
+    private IUserOnlineService UserOnlineService;
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
 
-    protected override void OnInitialized()
+    protected override async Task OnInitializedAsync()
     {
-        UserOnlineService.OnChange += StateHasChanged;
+        SignalRService.OnConnectionStateChanged += StateHasChanged;
+        var state = await authStateProvider.GetAuthenticationStateAsync();
+        var user = state.User;
+        PollingStationClient.SetUser(user);
+        var oid = user.FindFirst("oid")?.Value;
+
+        if (!string.IsNullOrEmpty(oid))
+        {
+            UserOnlineService = UserOnlineServiceFactory.GetOrCreate(oid);
+            Console.WriteLine($"Navmenu using UserOnlineService [{UserOnlineService.InstanceId}]");
+        }
+        UserOnlineService.OnChange += OnUserOnlineServiceChanged;
         Console.WriteLine("NavMenu subscribed to OnChange");
     }
 
     public void Dispose()
     {
-        UserOnlineService.OnChange -= StateHasChanged;
+        UserOnlineService.OnChange -= OnUserOnlineServiceChanged;
         Console.WriteLine("NavMenu unsubscribed from OnChange");
     }
 
     private void ToggleNavMenu()
     {
         collapseNavMenu = !collapseNavMenu;
+    }
+
+    private async void OnUserOnlineServiceChanged()
+    {
+        await InvokeAsync(StateHasChanged);
     }
 }

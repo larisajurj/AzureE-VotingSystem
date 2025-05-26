@@ -1,5 +1,6 @@
 ﻿using BlazorCircuitHandler.Services;
 using Microsoft.AspNetCore.Components.Server.Circuits;
+using VotingApp.Factories;
 using VotingApp.Services.Abstractions;
 
 namespace VotingApp.Services;
@@ -11,7 +12,8 @@ public static class ServicesInstaller
         services.AddScoped<SignalRService>();
         services.AddScoped<CircuitHandlerService>();
         services.AddScoped<CircuitHandler>(sp => sp.GetRequiredService<CircuitHandlerService>());
-        services.AddScoped<IUserOnlineService, UserOnlineService>();
+        //services.AddScoped<IUserOnlineService, UserOnlineService>();
+        services.AddSingleton<IUserOnlineServiceFactory, UserOnlineServiceFactory>();
 
         return services;
     }

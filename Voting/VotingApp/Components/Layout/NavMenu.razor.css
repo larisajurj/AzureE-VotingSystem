@@ -15,6 +15,14 @@
     transition: background-color 0.3s ease, color 0.3s ease; /* Smooth transition */
 }
 
+.notselectable {
+    -moz-user-select: -moz-none;
+    -khtml-user-select: none;
+    -webkit-user-select: none;
+    -o-user-select: none;
+    user-select: none;
+}
+
 .title {
     font-weight: 600;
     margin: 0 .5rem;

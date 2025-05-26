@@ -1,6 +1,7 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
 @using PollingStationApp.Components.Layout
 @using PollingStationApp.Data.Helpers.Abstractions
+@using System.Security.Claims
 @inject AuthenticationStateProvider authStateProvider
 @inject ITokenProvider TokenService
 @inject NavigationManager Navigation
@@ -31,6 +32,7 @@
             // Attempt to acquire the token at startup
             var x = await TokenService.GetAccessTokenAsync(user);
             x = "123";
+
         }
         catch (InvalidOperationException ex)
         {
