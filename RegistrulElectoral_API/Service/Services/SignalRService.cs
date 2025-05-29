@@ -1,43 +1,38 @@
-﻿namespace PollingStationApp.Services;
+﻿using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.Extensions.Configuration;
+using Service.Models;
 
-using Microsoft.AspNetCore.SignalR;
-using Microsoft.AspNetCore.SignalR.Client;
-using System;
-using System.Threading.Tasks;
+namespace Service.Services;
 
 public class SignalRService : IAsyncDisposable
 {
     private HubConnection? _hubConnection;
     private readonly string _hubUrl;
-    private string? _currentPollingStationId;
 
     public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
 
-    public event Action<string, string>? OnAppUnlocked;
-    public event Func<VotingRecord, Task> OnVerifyVoterSignalReceived;
     public event Action? OnConnectionStateChanged;
 
-    public SignalRService(IConfiguration configuration) 
+    public SignalRService(IConfiguration configuration)
     {
         var apiURL = configuration["ConnectionStrings:PollingStationAPI"];
         _hubUrl = $"{apiURL}/voting";
     }
 
-    public async Task<bool?> InitializeAndRegisterAsync(string pollingStationId)
+    public async Task InitializeSignalR()
     {
         if (_hubConnection != null && _hubConnection.State != HubConnectionState.Disconnected)
         {
             if (_hubConnection.State == HubConnectionState.Connected)
             {
                 Console.WriteLine("SignalRService: Already initialized and connected for this circuit.");
-                return true;
+                return ;
             }
             // If connected but for a different circuit, or in a connecting state, stop/dispose existing one.
             await StopAsync(); // Ensure clean state before reinitializing
             await DisposeCoreAsync(); // Dispose previous connection
         }
 
-        _currentPollingStationId = pollingStationId;
 
         _hubConnection = new HubConnectionBuilder()
             .WithUrl(_hubUrl, options =>
@@ -47,56 +42,39 @@ public class SignalRService : IAsyncDisposable
             .WithAutomaticReconnect()
             .Build();
 
-        _hubConnection.On<VotingRecord>("ReceiveVerifiedVoterRecord", async (record) => 
-        {
-            Console.WriteLine($"SignalRService: ReceiveVerifiedVoterRecord message received: VoterId {record.VoterId}");
-            if (OnVerifyVoterSignalReceived != null)
-            {
-                await OnVerifyVoterSignalReceived.Invoke(record);
-            }
-        });
-
-        _hubConnection.On<string, string>("UnlockApp", (psId, cabin) => // psId for pollingStationId
-        {
-            Console.WriteLine($"SignalRService: UnlockApp received: PS {psId}, Cabin {cabin}");
-            OnAppUnlocked?.Invoke(psId, cabin);
-        });
 
         try
         {
             await _hubConnection.StartAsync();
             Console.WriteLine($"SignalRService: Connection started. ConnectionId: {_hubConnection.ConnectionId}");
             OnConnectionStateChanged?.Invoke();
-            return true;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"SignalRService: Error starting connection or initial registration: {ex.Message}");
-            OnConnectionStateChanged?.Invoke(); // Notify state changed even on error
-            await DisposeCoreAsync(); // Clean up if start failed
-            return false; // Or throw ex; to let caller handle
+            OnConnectionStateChanged?.Invoke(); 
+            await DisposeCoreAsync(); 
         }
     }
 
 
 
-    public async Task RequestUnlockAppAsync(string cabinToUnlock) // Parameters renamed for clarity
+    public async Task RequestValidateVoter(Guid voterId, string pollingStationId) // Parameters renamed for clarity
     {
         if (_hubConnection != null && IsConnected)
         {
             try
             {
-                // Make sure your Hub's "UnlockApp" method expects these parameters
-                await _hubConnection.InvokeAsync("UnlockApp", _currentPollingStationId, cabinToUnlock);
+                await _hubConnection.InvokeAsync("VerifyVoter", voterId, pollingStationId);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"SignalRService: Error calling UnlockApp on server: {ex.Message}");
+                Console.WriteLine($"SignalRService: Error calling VerifyVoter on server: {ex.Message}");
             }
         }
         else
         {
-            Console.WriteLine("SignalRService: Not connected. Cannot send UnlockApp request.");
+            Console.WriteLine("SignalRService: Not connected. Cannot send VerifyVoter request.");
         }
     }
 
@@ -109,7 +87,6 @@ public class SignalRService : IAsyncDisposable
         }
     }
 
-    // Extracted core disposal logic to be callable from InitializeAndRegisterAsync if needed
     private async ValueTask DisposeCoreAsync()
     {
         if (_hubConnection != null)
@@ -128,8 +105,7 @@ public class SignalRService : IAsyncDisposable
             }
             await _hubConnection.DisposeAsync();
             _hubConnection = null;
-            _currentPollingStationId = null;
-            OnConnectionStateChanged?.Invoke(); 
+            OnConnectionStateChanged?.Invoke();
         }
     }
 

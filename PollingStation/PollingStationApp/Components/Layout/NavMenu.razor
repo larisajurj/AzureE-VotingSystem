@@ -1,5 +1,6 @@
 ﻿@using PollingStationApp.Models
 @using PollingStationApp.Services.Abstractions
+@rendermode InteractiveServer
 @inject IUserOnlineService UserOnlineService
 
 <div class="top-row ps-3 navbar">
@@ -64,7 +65,7 @@
             member = UserOnlineService.CommitteeMember;
             StateHasChanged();
             Console.WriteLine($"NavMenu using UserOnlineService [{UserOnlineService.InstanceId}]");
-            Console.WriteLine(member);
+            //Console.WriteLine(member);
 
         }
         catch (Exception ex)

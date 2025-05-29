@@ -61,13 +61,13 @@
             Console.WriteLine($"Navmenu using UserOnlineService [{UserOnlineService.InstanceId}]");
         }
         UserOnlineService.OnChange += OnUserOnlineServiceChanged;
-        Console.WriteLine("NavMenu subscribed to OnChange");
+        //Console.WriteLine("NavMenu subscribed to OnChange");
     }
 
     public void Dispose()
     {
         UserOnlineService.OnChange -= OnUserOnlineServiceChanged;
-        Console.WriteLine("NavMenu unsubscribed from OnChange");
+        //Console.WriteLine("NavMenu unsubscribed from OnChange");
     }
 
     private void ToggleNavMenu()

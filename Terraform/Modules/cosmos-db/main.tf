@@ -64,14 +64,24 @@ resource "azurerm_cosmosdb_sql_container" "cosmos_logs_sql_container" {
   partition_key_paths   = ["/id"]
 }
 
-# Store information about election register
-resource "azurerm_cosmosdb_sql_container" "cosmos_rating_sql_container" {
-  name                  = "ElectionRegister"
+# Store information about the permanent election register of a station
+resource "azurerm_cosmosdb_sql_container" "cosmos_electoral_reg_sql_container" {
+  name                  = "ElectoralRegister"
   resource_group_name   = var.resource_group
   account_name          = azurerm_cosmosdb_account.cosmos_acc.name
   database_name         = azurerm_cosmosdb_sql_database.cosmos_sql_database.name
   partition_key_paths   = ["/id"]
 }
+
+# Store information about the special election register of a station
+resource "azurerm_cosmosdb_sql_container" "cosmos_special_reg_sql_container" {
+  name                  = "VoteRecord"
+  resource_group_name   = var.resource_group
+  account_name          = azurerm_cosmosdb_account.cosmos_acc.name
+  database_name         = azurerm_cosmosdb_sql_database.cosmos_sql_database.name
+  partition_key_paths   = ["/id"]
+}
+
 
 ## Custom role definition for read access to the Cosmos DB
 #resource "azurerm_cosmosdb_sql_role_definition" "read_role" {

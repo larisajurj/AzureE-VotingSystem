@@ -5,46 +5,45 @@
 @using PollingStationApp.Components.Shared
 @using PollingStationApp.Data.Helpers.Abstractions
 @using PollingStationApp.Models
+@using PollingStationApp.Services
 @attribute [StreamRendering]
 @rendermode InteractiveServer
 @inject ITokenProvider TokenProvider
 @inject AuthenticationStateProvider AuthenticationStateProvider
 @inject IConfiguration Configuration
+@inject SignalRService signalRService;
 
-<PageTitle>Home</PageTitle>
 <div class="content">
-    <VoterPopUp Voter="Voter"></VoterPopUp>
-
+    @if (isLoading)
+    {
+        <p><em>Așteptare cerere verificare...</em></p>
+    }
+    else if (currentVotingRecord != null && currentVotingRecord.Voter != null)
+    {
+        <VoterPopUp Voter="currentVotingRecord.Voter"></VoterPopUp>
+        <p class="mt-2"><em>Alegător verificat: @currentVotingRecord.Voter.FirstName @currentVotingRecord.Voter.LastName</em></p>
+    }
+    else
+    {
+        <p>Nicio cerere înregistrată sau datele alegătorului nu au putut fi încărcate.</p>
+    }
 </div>
 
 @code {
     private ClaimsPrincipal? _user;
     private HubConnection? hubConnection;
-    private string baseUrl;
     private string exc;
     private RegisteredVoter Voter;
+    private VotingRecord? currentVotingRecord;
+    private bool isLoading = true;
 
     protected override async Task OnInitializedAsync()
     {
-        Voter = new RegisteredVoter
-            {
-                LastName = "Nespecificat",
-                FirstName = "Nespecificat",
-                DateOfBirth = DateTime.MinValue,
-                PlaceOfBirth = "Nespecificat",
-                Gender = "Nespecificat",
-                PollingStationId = "N/A",
-                Id = new Guid()
-            };
-        baseUrl = Configuration["ConnectionStrings:PollingStationAPI"];
+        signalRService.OnVerifyVoterSignalReceived += HandleVerifiedVoterRecordAsync;
+
         try
         {
-            hubConnection = new HubConnectionBuilder()
-                .WithUrl($"{baseUrl}/voting") // Change to your actual hub endpoint
-                .WithAutomaticReconnect()
-            .Build();
-
-            await hubConnection.StartAsync();
+            await signalRService.InitializeAndRegisterAsync("2");
         }
         catch (Exception e)
         {
@@ -52,6 +51,25 @@
         }
 
     }
+    public async Task HandleVerifiedVoterRecordAsync(VotingRecord record)
+    {
+        isLoading = true;
+        currentVotingRecord = null; // Clear previous
+        await InvokeAsync(StateHasChanged);
+
+
+        Console.WriteLine($"Home page: Received OnVerifiedVoterRecord event for VoterId: {record.VoterId}");
+        currentVotingRecord = record;
+
+        // Ensure record.Voter is populated if VoterPopUp needs it directly.
+        // If not, and VoterPopUp can take VotingRecord and extract Voter itself, that's fine.
+        // If record.Voter is null here but should be populated, you might need an additional fetch
+        // or ensure the server sends it populated.
+
+        isLoading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
     protected async void OnClick(EventArgs args)
     {
         Console.WriteLine("click event");

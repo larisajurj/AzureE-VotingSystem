@@ -58,6 +58,7 @@ resource "azurerm_linux_web_app" "polling_station_app" {
 
   app_settings = {
     ConnectionStrings__PollingStationAPI = "https://${lower(azurerm_linux_web_app.polling_station_api.name)}.azurewebsites.net"
+    ClientConfigurations__PollingStationClient__BaseURL = "https://${lower(azurerm_linux_web_app.polling_station_api.name)}.azurewebsites.net"
     DetailedErrors = true
   }
 

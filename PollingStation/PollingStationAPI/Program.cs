@@ -86,7 +86,7 @@ builder.Services.AddAPIServices();
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
-app.Use(async (context, next) =>
+/*app.Use(async (context, next) =>
 {
     var authHeader = context.Request.Headers["Authorization"].ToString();
     Console.WriteLine($"Authorization header: {authHeader}");
@@ -99,7 +99,7 @@ app.Use(async (context, next) =>
     }
 
     await next();
-});
+});*/
 app.UseRouting();
 app.UseCors("AllowAll");
 

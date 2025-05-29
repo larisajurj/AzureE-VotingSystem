@@ -88,8 +88,13 @@ a, .btn-link {
 
 .btn-primary {
     color: #fff;
-    background-color: #1b6ec2;
-    border-color: #1861ac;
+    background-color: var(--selected-background-color);
+    border-color: var(--selected-text-color);
+}
+
+.btn-primary:hover {
+    background-color: var(--button-hover-bg) !important;
+    color: white;
 }
 
 .external-link-button {

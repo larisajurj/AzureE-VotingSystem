@@ -1,6 +1,7 @@
 ﻿@using Microsoft.AspNetCore.Components.Authorization
 @using PollingStationApp.Models
 @using PollingStationApp.Services.Abstractions
+@rendermode InteractiveServer
 @inject IPollingStationClient PollingStationClient
 @inject AuthenticationStateProvider authStateProvider
 @inject IUserOnlineService UserOnlineService
@@ -26,11 +27,12 @@
             committeeMember = await PollingStationClient.GetCommitteeMember();
             UserOnlineService.CommitteeMember = committeeMember;
             UserOnlineService.MarkInitialized();
+            Console.WriteLine($"CircuitProps using UserOnlineService [{UserOnlineService.InstanceId}]");
         }
 
         // Console.WriteLine($"CircuitProps using UserOnlineService [{UserOnlineService.InstanceId}]");
 
-        Console.WriteLine(pollingStation);
+        //Console.WriteLine(pollingStation);
         StateHasChanged();
     }
 }

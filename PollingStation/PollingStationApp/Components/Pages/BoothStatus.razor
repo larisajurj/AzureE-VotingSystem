@@ -1,26 +1,76 @@
 ﻿@page "/boothStatus"
-@using PollingStationApp.Context
+@using PollingStationApp.Components.Shared
+@using PollingStationApp.Models
+@using PollingStationApp.Services.Abstractions
 @rendermode InteractiveServer
-@inject CosmosDbContext context; 
-<PageTitle>Counter</PageTitle>
+@inject IUserOnlineService UserOnlineService
+@inject IPollingStationClient PollingStationClient
 
-<h1>Counter</h1>
+<PageTitle>BoothStatus</PageTitle>
 
-<p role="status">Current count: @currentCount</p>
-@foreach (var booth in context.PollingStation.Where(p => p.Id == "2").FirstOrDefault()?.Booths)
+@if (pollingStation != null && pollingStation.Booths != null && pollingStation.Booths.Any())
 {
-    <p role="status">Id: @booth.Id</p>
-    <p role="status">Session: @booth.SessionId</p>
-    <p role="status">Status: @booth.Status</p>
-
+    <div class="d-flex flex-wrap justify-content-center booth-container">
+        @foreach (var booth in pollingStation.Booths.OrderBy(b => b.Id))
+        {
+            <BoothCard Booth="booth"/>
+        }
+    </div>
 }
-<button class="btn btn-primary" @onclick="IncrementCount">Click me</button>
+else if (isLoading)
+{
+    <p><em>Se încarcă informațiile cabinelor...</em></p>
+}
+else
+{
+    <p><em>Nicio cabină găsită pentru această secție de votare sau secția nu a putut fi încărcată.</em></p>
+}
 
 @code {
     private int currentCount = 0;
+    private PollingStation? pollingStation;
+    private bool isLoading = true;
 
-    private void IncrementCount()
+    protected override async Task OnInitializedAsync()
     {
-        currentCount++;
+        isLoading = true;
+        Console.WriteLine("OnInitializedAsync: Entered.");
+        if (UserOnlineService == null)
+        {
+            Console.WriteLine("OnInitializedAsync: UserOnlineService is NULL at start.");
+            return; // Or handle appropriately
+        }
+        Console.WriteLine($"BoothStatus using UserOnlineService [{UserOnlineService.InstanceId}]");
+
+        Console.WriteLine("OnInitializedAsync: Awaiting UserOnlineService.InitializationComplete.Task...");
+        await UserOnlineService.InitializationComplete.Task;
+        Console.WriteLine("OnInitializedAsync: UserOnlineService.InitializationComplete.Task completed.");
+
+        if (UserOnlineService.PollingStation != null && !string.IsNullOrEmpty(UserOnlineService.PollingStation.Id)) // Adjust to your actual ID property
+        {
+            Console.WriteLine($"OnInitializedAsync: Fetching station for ID: {UserOnlineService.PollingStation.Id}");
+            pollingStation = await PollingStationClient.GetStationById(UserOnlineService.PollingStation.Id);
+            if (pollingStation == null)
+            {
+                Console.WriteLine("OnInitializedAsync: PollingStationClient.GetStationById returned NULL.");
+            }
+            else
+            {
+                Console.WriteLine($"OnInitializedAsync: Fetched polling station: {pollingStation.Name}"); // Assuming a Name property
+            }
+        }
+        else
+        {
+            Console.WriteLine("OnInitializedAsync: Condition to fetch polling station was false.");
+            if (UserOnlineService.PollingStation == null) Console.WriteLine("Reason: UserOnlineService.PollingStation is null.");
+            else Console.WriteLine($"Reason: UserOnlineService.PollingStation.Id is null or empty (Value: '{UserOnlineService.PollingStation.Id}').");
+            pollingStation = null; // Ensure consistent state
+        }
+        // StateHasChanged(); // Often not needed if data is set before the method completes
+        Console.WriteLine("OnInitializedAsync: Exiting.");
+        isLoading = false;
+
     }
+
+
 }

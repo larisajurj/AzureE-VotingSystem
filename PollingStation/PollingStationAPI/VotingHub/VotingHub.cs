@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Routing.Constraints;
-using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.SignalR;
 using PollingStationAPI.Data.Models;
 using PollingStationAPI.Service.Services.Abstractions;
 using PollingStationAPI.VotingHub.Abstractions;
@@ -9,10 +8,13 @@ namespace PollingStationAPI.VotingHub;
 public class VotingHub : Hub<IVotingHub>
 {
     private readonly IPollingStationService _pollingStationService;
-    public VotingHub(IPollingStationService pollingStationService)
+    private readonly IVotingRecordService _recordService;
+    public VotingHub(IPollingStationService pollingStationService, IVotingRecordService recordService)
     {
         _pollingStationService = pollingStationService;
+        _recordService = recordService;
     }
+
     public async Task<int> RegisterSession(string sessionId, string pollingStationId) //Removed userId
     {
         Console.WriteLine($"Registering session for SessionId: {sessionId}, PollingStationId: {pollingStationId}");
@@ -73,4 +75,34 @@ public class VotingHub : Hub<IVotingHub>
         }
         
     }
+    public async Task<VotingRecord?> VerifyVoter(Guid voterId, string pollingStationId)
+    {
+        Console.WriteLine($"VerifyVoter requested for voter with ID {voterId}, polling station: {pollingStationId}");
+        try
+        {
+            var record = new VotingRecord() { 
+                Id = Guid.NewGuid(),
+                PollingStationId = pollingStationId, 
+                VoterId = voterId, 
+                VotingStatus = "Verified"
+            };
+
+            var createdRecord = await _recordService.AddRecordAsync(record, pollingStationId);
+            await Clients.All
+                .ReceiveVerifiedVoterRecord(createdRecord);
+            return createdRecord;
+        }
+        catch (HubException ex)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+
+            Console.WriteLine($"Error verifying app voter {voterId}, polling station {pollingStationId} : {ex.Message}");
+            throw new HubException("Error verifying voter", ex); //Wrap the exception
+        }
+         
+    }
+
 }

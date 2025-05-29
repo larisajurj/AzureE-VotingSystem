@@ -27,7 +27,7 @@ public static class Installer
 				connectionString ?? "",
 				databaseName
         ));
-        // Register the repository as a scoped service
+
         services.AddScoped<IRepository<PollingStation, string>>(s =>
         {
             var client = s.GetRequiredService<CosmosClient>();
@@ -38,6 +38,18 @@ public static class Installer
         {
             var client = s.GetRequiredService<CosmosClient>();
             return new CommitteeMemberRepository(client);
+        });
+
+        services.AddScoped<IRepository<RegisteredVoter, Guid>>(s =>
+        {
+            var client = s.GetRequiredService<CosmosClient>();
+            return new ElectoralRegisterRepository(client);
+        });
+
+        services.AddScoped<IRepository<VotingRecord, Guid>>(s =>
+        {
+            var client = s.GetRequiredService<CosmosClient>();
+            return new VotingRecordRepository(client);
         });
     }
 }
