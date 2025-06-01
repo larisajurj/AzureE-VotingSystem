@@ -1,0 +1,7 @@
+﻿body {
+}
+
+.list-group-custom {
+    flex-direction: row !important;
+    background-color: pink;
+}

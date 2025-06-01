@@ -3,7 +3,9 @@
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using System;
+using System.Security.Claims;
 using System.Threading.Tasks;
+using VotingApp.Services.Abstractions;
 
 public class SignalRService : IAsyncDisposable
 {
@@ -17,14 +19,17 @@ public class SignalRService : IAsyncDisposable
 
     public event Action<string, string>? OnAppUnlocked;
     public event Action? OnConnectionStateChanged;
+    private readonly ITokenProvider _tokenProvider;
 
-    public SignalRService(IConfiguration configuration) 
+    public SignalRService(IConfiguration configuration, ITokenProvider tokenProvider) 
     {
         var apiURL = configuration["ClientConfigurations:PollingStationClient:BaseURL"];
         _hubUrl = $"{apiURL}/voting";
+        _tokenProvider = tokenProvider;
+
     }
 
-    public async Task<string?> InitializeAndRegisterAsync(string pollingStationId, string circuitId)
+    public async Task<string?> InitializeAndRegisterAsync(string pollingStationId, string circuitId, ClaimsPrincipal user)
     {
         if (_hubConnection != null && _hubConnection.State != HubConnectionState.Disconnected)
         {
@@ -42,10 +47,12 @@ public class SignalRService : IAsyncDisposable
         _currentPollingStationId = pollingStationId;
         _assignedCabin = null; // Reset cabin
 
+        var tokenResult = await _tokenProvider.GetAccessTokenAsync(user);
+
         _hubConnection = new HubConnectionBuilder()
             .WithUrl(_hubUrl, options =>
             {
-                // options.AccessTokenProvider = ... // If using auth
+                options.AccessTokenProvider = () => Task.FromResult(tokenResult);
             })
             .WithAutomaticReconnect()
             .Build();

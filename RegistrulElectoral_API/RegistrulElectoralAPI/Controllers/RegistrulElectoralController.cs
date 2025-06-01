@@ -47,7 +47,8 @@ public class RegistrulElectoralController : ControllerBase
     [HttpGet("verifyVoter")]
     public async Task<ActionResult> VerifyVoter(
         [FromQuery] Guid voterId,
-        [FromQuery] string pollingStationId) 
+        [FromQuery] string pollingStationId,
+        [FromQuery] string token) 
     {
         if (string.IsNullOrEmpty(pollingStationId) || voterId == Guid.Empty)
         {
@@ -57,7 +58,7 @@ public class RegistrulElectoralController : ControllerBase
 		try
 		{
 
-            await signalRService.InitializeSignalR();
+            await signalRService.InitializeSignalR(token);
             await signalRService.RequestValidateVoter(voterId, "2");
             return Ok(new { message = $"Verification request for voter {voterId} sent to clients for polling station {pollingStationId}." });
         }

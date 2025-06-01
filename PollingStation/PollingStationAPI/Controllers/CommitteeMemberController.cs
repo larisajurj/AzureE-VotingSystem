@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 using PollingStationAPI.Data.Models;
 using PollingStationAPI.Service.Exceptions;
 using PollingStationAPI.Service.Services.Abstractions;
@@ -8,7 +7,7 @@ namespace PollingStationAPI.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
+//[Authorize]
 public class CommitteeMemberController : ControllerBase
 {
     private readonly ICommitteeMemberService _committeeMemberService;

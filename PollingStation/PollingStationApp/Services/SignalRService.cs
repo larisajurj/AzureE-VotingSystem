@@ -1,10 +1,14 @@
-﻿namespace PollingStationApp.Services;
+﻿using PollingStationApp.Data.Helpers.Abstractions;
+
+namespace PollingStationApp.Services;
 
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
+using Newtonsoft.Json.Linq;
+using PollingStationApp.Data.Helpers;
 using System;
+using System.Security.Claims;
 using System.Threading.Tasks;
-
 public class SignalRService : IAsyncDisposable
 {
     private HubConnection? _hubConnection;
@@ -16,14 +20,15 @@ public class SignalRService : IAsyncDisposable
     public event Action<string, string>? OnAppUnlocked;
     public event Func<VotingRecord, Task> OnVerifyVoterSignalReceived;
     public event Action? OnConnectionStateChanged;
-
-    public SignalRService(IConfiguration configuration) 
+    private readonly ITokenProvider _tokenProvider;
+    public SignalRService(IConfiguration configuration, ITokenProvider tokenProvider) 
     {
         var apiURL = configuration["ConnectionStrings:PollingStationAPI"];
         _hubUrl = $"{apiURL}/voting";
+        _tokenProvider = tokenProvider;
     }
 
-    public async Task<bool?> InitializeAndRegisterAsync(string pollingStationId)
+    public async Task<bool?> InitializeAndRegisterAsync(string pollingStationId, ClaimsPrincipal user)
     {
         if (_hubConnection != null && _hubConnection.State != HubConnectionState.Disconnected)
         {
@@ -38,11 +43,12 @@ public class SignalRService : IAsyncDisposable
         }
 
         _currentPollingStationId = pollingStationId;
+        var tokenResult = await _tokenProvider.GetAccessTokenAsync(user);
 
-        _hubConnection = new HubConnectionBuilder()
+            _hubConnection = new HubConnectionBuilder()
             .WithUrl(_hubUrl, options =>
             {
-                // options.AccessTokenProvider = ... // If using auth
+                options.AccessTokenProvider = () => Task.FromResult(tokenResult); 
             })
             .WithAutomaticReconnect()
             .Build();
@@ -80,14 +86,14 @@ public class SignalRService : IAsyncDisposable
 
 
 
-    public async Task RequestUnlockAppAsync(string cabinToUnlock) // Parameters renamed for clarity
+    public async Task RequestUnlockAppAsync(int cabinToUnlock) // Parameters renamed for clarity
     {
         if (_hubConnection != null && IsConnected)
         {
             try
             {
                 // Make sure your Hub's "UnlockApp" method expects these parameters
-                await _hubConnection.InvokeAsync("UnlockApp", _currentPollingStationId, cabinToUnlock);
+                await _hubConnection.InvokeAsync("UnlockApp", _currentPollingStationId, cabinToUnlock.ToString());
             }
             catch (Exception ex)
             {

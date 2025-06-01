@@ -10,4 +10,9 @@ public interface IPollingStationClient
     Task<Booth?> GetBoothById(string pollingStationId, int boothId);
     Task<PollingStation?> GetStationByUserId();
     Task<CommitteeMember?> GetCommitteeMember();
+    Task SaveSignature(Guid recordId, string signature);
+    Task<List<VotingRecord>?> GetRecordsByStatus(string assignedMemberId, string status);
+    Task<List<Booth>> GetBooths(string pollingStationId);
+    Task ChangeStatusOfRecord(Guid voterId, string status);
+
 }

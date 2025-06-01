@@ -176,5 +176,58 @@ public class VotingRecordController : ControllerBase
             return BadRequest(new { message = "Failed to delete voting record.", error = ex.Message });
         }
     }
+
+    [HttpPost("{recordId:guid}/signature")]
+
+    public async Task<ActionResult> SaveSignature(Guid recordId, [FromBody] string signature)
+    {
+        if (recordId == Guid.Empty)
+        {
+            return BadRequest("Record ID cannot be empty.");
+        }
+
+        try
+        {
+            await _votingRecordService.SaveSignature(recordId, signature);
+            return NoContent();
+        }
+        catch (KeyNotFoundException knfEx)
+        {
+            return NotFound(new { message = knfEx.Message });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = "Failed to save signature.", error = ex.Message });
+        }
+    }
+
+    [HttpGet("byAssignedMemberId/{memberId}/status/{status}")]
+    public async Task<ActionResult<List<VotingRecord>>> GetVotingRecordsByStatusAndMember(string memberId, string status)
+    {
+        if (memberId == null)
+        {
+            return BadRequest("Member ID cannot be empty.");
+        }
+        try
+        {
+            var records = await _votingRecordService.GetRecordsByStatus(memberId, status);
+
+            if (records == null || records.Count() == 0)
+            {
+                return NotFound($"Voting record for Member ID {memberId} not found.");
+            }
+
+            return Ok(records);
+        }
+        catch (KeyNotFoundException knfEx)
+        {
+            return NotFound(new { message = knfEx.Message });
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { message = "Failed to get records.", error = ex.Message });
+        }
+    }
+
 }
 

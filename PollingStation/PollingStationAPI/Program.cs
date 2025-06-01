@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.Identity.Web;
 using Microsoft.OpenApi.Models;
 using PollingStationAPI.Data;
@@ -81,6 +82,8 @@ builder.Services.AddSignalR(options =>
     options.ClientTimeoutInterval = TimeSpan.FromSeconds(5); // Waits max 10s for a ping
     options.KeepAliveInterval = TimeSpan.FromSeconds(5);
 });
+builder.Services.AddSingleton<IUserIdProvider, OidUserIdProvider>();
+
 builder.Services.AddCosmosDb(builder.Configuration);
 builder.Services.AddAPIServices();
 builder.Services.AddAuthorization();

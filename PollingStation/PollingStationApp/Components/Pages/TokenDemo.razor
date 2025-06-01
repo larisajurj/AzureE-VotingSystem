@@ -1,0 +1,28 @@
+﻿@page "/token"
+@using Microsoft.AspNetCore.Components.Authorization
+@using PollingStationApp.Data.Helpers.Abstractions
+@inject AuthenticationStateProvider authStateProvider
+@inject ITokenProvider TokenService
+@rendermode InteractiveServer
+<h3>TokenDemo</h3>
+
+<p><em>@token</em></p>
+
+@code {
+    public string token;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var state = await authStateProvider.GetAuthenticationStateAsync();
+            var user = state.User;
+            token = await TokenService.GetAccessTokenAsync(user);
+
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e.Message);
+        }
+    }
+}

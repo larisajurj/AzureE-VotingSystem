@@ -19,7 +19,7 @@ public class SignalRService : IAsyncDisposable
         _hubUrl = $"{apiURL}/voting";
     }
 
-    public async Task InitializeSignalR()
+    public async Task InitializeSignalR(string token)
     {
         if (_hubConnection != null && _hubConnection.State != HubConnectionState.Disconnected)
         {
@@ -37,7 +37,7 @@ public class SignalRService : IAsyncDisposable
         _hubConnection = new HubConnectionBuilder()
             .WithUrl(_hubUrl, options =>
             {
-                // options.AccessTokenProvider = ... // If using auth
+                 options.AccessTokenProvider = () => Task.FromResult(token);
             })
             .WithAutomaticReconnect()
             .Build();

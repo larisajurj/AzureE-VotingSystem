@@ -1,10 +1,12 @@
-﻿using Microsoft.AspNetCore.SignalR;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.SignalR;
 using PollingStationAPI.Data.Models;
 using PollingStationAPI.Service.Services.Abstractions;
 using PollingStationAPI.VotingHub.Abstractions;
 
 namespace PollingStationAPI.VotingHub;
 
+[Authorize]
 public class VotingHub : Hub<IVotingHub>
 {
     private readonly IPollingStationService _pollingStationService;
@@ -88,8 +90,13 @@ public class VotingHub : Hub<IVotingHub>
             };
 
             var createdRecord = await _recordService.AddRecordAsync(record, pollingStationId);
-            await Clients.All
+
+            if (createdRecord.AssociateCommitteeMemberId == null)
+                throw new Exception("Could not associate member");
+
+            await Clients.User(createdRecord.AssociateCommitteeMemberId)
                 .ReceiveVerifiedVoterRecord(createdRecord);
+
             return createdRecord;
         }
         catch (HubException ex)

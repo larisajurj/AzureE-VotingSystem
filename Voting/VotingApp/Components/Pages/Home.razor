@@ -95,13 +95,15 @@ else
         Console.WriteLine("Start waiting");
         await UserOnlineService.InitializationComplete.Task;
         _pollingStationId = UserOnlineService.PollingStation?.Id;
+        var state = await authStateProvider.GetAuthenticationStateAsync();
+        var user = state.User;
         Console.WriteLine("Stop waiting");
         try
         {
             initializationError = null; // Clear previous errors
             // InitializeAsync will handle connection and initial registration
             // It should return the assigned cabin or an indicator of success/failure
-            string? cabin = await VotingService.InitializeAndRegisterAsync(_pollingStationId, _sessionId);
+            string? cabin = await VotingService.InitializeAndRegisterAsync(_pollingStationId, _sessionId, user);
 
             if (!string.IsNullOrEmpty(cabin) && !cabin.StartsWith("Error:"))
             {
@@ -163,7 +165,9 @@ else
         {
             if (string.IsNullOrEmpty(_pollingStationId) && string.IsNullOrEmpty(_assignedCabin) && string.IsNullOrEmpty(_sessionId))
             {
-                await VotingService.InitializeAndRegisterAsync(_pollingStationId, _assignedCabin);
+                var state = await authStateProvider.GetAuthenticationStateAsync();
+                var user = state.User;
+                await VotingService.InitializeAndRegisterAsync(_pollingStationId, _assignedCabin, user);
                 //UserOnlineService.Connect(_sessionId, _assignedCabin);
                 Console.WriteLine($"Registered session {_sessionId} and got booth number: {_assignedCabin}");
             }else

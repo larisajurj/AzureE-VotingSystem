@@ -132,4 +132,39 @@ public class VotingRecordService : IVotingRecordService
         await _repository.Update(record);
         return record ?? throw new NotFoundException($"Record associated with '{voterId}' not found..");
     }
+
+    public async Task SaveSignature(Guid voterId, string signature)
+    {
+        var records = await _repository.Filter(r => r.VoterId == voterId);
+        var record = records.FirstOrDefault();
+
+        if (record == null)
+        {
+            throw new NotFoundException($"Record with voter id '{voterId}' not found..");
+        }
+
+        record.VotingStatus = "Confirmed";
+        record.Signature = signature;
+        await _repository.Update(record);
+    }
+
+    public async Task<List<VotingRecord>> GetRecordsByStatus(string assignedMemberId, string status)
+    {
+        var records = await _repository.Filter(r => r.AssociateCommitteeMemberId == assignedMemberId && r.VotingStatus == status);
+        if (records == null || records.Count() == 0)
+        {
+            throw new NotFoundException($"Record associated with member '{assignedMemberId}' not found.");
+        }
+        
+        foreach(VotingRecord record in records){
+            if (record.VoterId != Guid.Empty)
+            {
+                var associatedVoter = await _electoralRegisterRepository.GetById(record.VoterId);
+                record.Voter = associatedVoter;
+            }
+        }
+
+        return records.ToList();
+    }
 }
+

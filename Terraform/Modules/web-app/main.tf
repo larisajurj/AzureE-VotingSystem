@@ -9,24 +9,25 @@ resource "azurerm_service_plan" "web_app_service_plan" {
 
 
 #Electoral Register Web App Resource
-#resource "azurerm_linux_web_app" "electoral_register_web_app" {
-#  name                = var.electoral_register_app_name
-#  resource_group_name = var.resource_group
-#  location            = var.location
-#  service_plan_id     = azurerm_service_plan.web_app_service_plan.id
-#
-#  app_settings = {
-#  }
-#
-#  site_config {
-#    always_on = false
-#    
-#    application_stack  {
-#      dotnet_version = "8.0"
-#    }
-#  }
-#}
-#
+resource "azurerm_linux_web_app" "electoral_register_web_app" {
+  name                = var.electoral_register_app_name
+  resource_group_name = var.resource_group
+  location            = var.location
+  service_plan_id     = azurerm_service_plan.web_app_service_plan.id
+
+  app_settings = {
+    ConnectionStrings__PollingStationAPI = "https://${lower(azurerm_linux_web_app.polling_station_api.name)}.azurewebsites.net"
+  }
+
+  site_config {
+    always_on = false
+    
+    application_stack  {
+      dotnet_version = "9.0"
+    }
+  }
+}
+
 
 #Polling Station Portal Web App Resource
 resource "azurerm_linux_web_app" "polling_station_api" {
