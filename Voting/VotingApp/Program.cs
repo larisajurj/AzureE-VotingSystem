@@ -33,7 +33,7 @@ builder.Services.AddControllersWithViews().AddMicrosoftIdentityUI();
 builder.Services.AddRazorPages();
 builder.Services.AddHttpClient();
 builder.Services.AddSignalRSessionServices(builder.Configuration);
-builder.Services.AddPollingStationClient(builder.Configuration);
+builder.Services.AddHttpClients(builder.Configuration);
 builder.Services.AddScoped<ITokenProvider, TokenProvider>();
 
 var app = builder.Build();

@@ -73,14 +73,14 @@ module "database" {
   resource_group  = var.eVoting_rg_name
 }
 
-#module "storage-account" {
-#  source = "./modules/storage-account"
-#  depends_on = [
-#    azurerm_resource_group.eVoting_rg,
-#  ]
-#  resource_group = var.eVoting_rg_name
-#  votes_st_name  = var.voting_st_name
-#}
+module "storage-account" {
+  source = "./modules/storage-account"
+  depends_on = [
+    azurerm_resource_group.eVoting_rg,
+  ]
+  resource_group = var.eVoting_rg_name
+  votes_st_name  = var.voting_st_name
+}
 
 #module "vnet" {
 #  source = "./modules/vnet"

@@ -13,7 +13,7 @@
     <div class="d-flex flex-wrap justify-content-center booth-container">
         @foreach (var booth in pollingStation.Booths.OrderBy(b => b.Id))
         {
-            <BoothCard Booth="booth"/>
+            <BoothCard Booth="booth" OnDeleteSessionClicked="OnDeleteSessionClicked" />
         }
     </div>
 }
@@ -34,21 +34,16 @@ else
     protected override async Task OnInitializedAsync()
     {
         isLoading = true;
-        Console.WriteLine("OnInitializedAsync: Entered.");
         if (UserOnlineService == null)
         {
-            Console.WriteLine("OnInitializedAsync: UserOnlineService is NULL at start.");
             return; // Or handle appropriately
         }
-        Console.WriteLine($"BoothStatus using UserOnlineService [{UserOnlineService.InstanceId}]");
+        //Console.WriteLine($"BoothStatus using UserOnlineService [{UserOnlineService.InstanceId}]");
 
-        Console.WriteLine("OnInitializedAsync: Awaiting UserOnlineService.InitializationComplete.Task...");
         await UserOnlineService.InitializationComplete.Task;
-        Console.WriteLine("OnInitializedAsync: UserOnlineService.InitializationComplete.Task completed.");
 
         if (UserOnlineService.PollingStation != null && !string.IsNullOrEmpty(UserOnlineService.PollingStation.Id)) // Adjust to your actual ID property
         {
-            Console.WriteLine($"OnInitializedAsync: Fetching station for ID: {UserOnlineService.PollingStation.Id}");
             pollingStation = await PollingStationClient.GetStationById(UserOnlineService.PollingStation.Id);
             if (pollingStation == null)
             {
@@ -72,5 +67,11 @@ else
 
     }
 
+    public async Task OnDeleteSessionClicked(Booth booth)
+    {
+        if (UserOnlineService != null && UserOnlineService.PollingStation != null)
+            await PollingStationClient.DeleteBoothSession(UserOnlineService.PollingStation.Id, booth.Id);
+        await InvokeAsync(StateHasChanged);
+    }
 
 }

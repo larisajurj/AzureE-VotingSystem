@@ -209,4 +209,24 @@ public class PollingStationClient : IPollingStationClient
             throw new UnauthorizedAccessException();
         }
     }
+
+    public async Task DeleteBoothSession(string pollingStationId, int boothId)
+    {
+        var client = this.clientFactory.CreateClient(this.clientName);
+
+        if (user != null)
+        {
+
+            var token = await tokenProvider.GetAccessTokenAsync(user);
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+
+            var result = await client.PostAsync($"/api/PollingStation/{pollingStationId}/booth/{boothId}/delete-session", null);
+            result.EnsureSuccessStatusCode();
+        }
+        else
+        {
+            throw new UnauthorizedAccessException();
+        }
+    }
 }

@@ -1,5 +1,6 @@
 ﻿using System.Net.Http.Headers;
 using System.Security.Claims;
+using VotingApp.Components;
 using VotingApp.Models;
 using VotingApp.Services.Abstractions;
 
@@ -8,7 +9,6 @@ namespace VotingApp.Services;
 public class PollingStationClient : IPollingStationClient
 {
     private readonly IHttpClientFactory clientFactory;
-    //private readonly ITokenProvider tokenProvider;
     private readonly string clientName;
     protected ClaimsPrincipal? user;
     private ITokenProvider tokenProvider;
@@ -105,6 +105,28 @@ public class PollingStationClient : IPollingStationClient
                 client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
                 var result = await client.GetAsync($"/api/PollingStation/{pollingStationId}/booth/{boothId}");
                 var content = await result.Content.ReadFromJsonAsync<Booth>();
+                return content;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+        else return null;
+    }
+
+    public async Task<List<Candidate>> GetCandidates()
+    {
+        var client = this.clientFactory.CreateClient(this.clientName);
+
+        if (user != null)
+        {
+            try
+            {
+                var token = await tokenProvider.GetAccessTokenAsync(user);
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                var result = await client.GetAsync($"/api/Candidate");
+                var content = await result.Content.ReadFromJsonAsync<List<Candidate>>();
                 return content;
             }
             catch (Exception ex)

@@ -6,7 +6,7 @@
         <h6 class="card-title mb-2">Cabina nr @Booth.Id</h6>
         <p class="card-text small">
             Status: <strong class="@(Booth.Status?.ToLower() == "unlocked" ? "text-success" : "text-danger")">
-                @(Booth.Status?.ToUpper())
+                @(Booth.Status?.ToLower() == "unlocked" ? "Deschisă" : "Închisă")
             </strong>
             <br>
             @if (!string.IsNullOrEmpty(Booth.SessionId))
@@ -18,9 +18,18 @@
                 <span class="text-muted">Sesiune: Liberă</span>
             }
         </p>
-        <button class="btn btn-primary btn-outline-info" @onclick="HandleActionButtonClick">
-            Sterge sesiunea asociata
-        </button>
+        @if (!string.IsNullOrEmpty(Booth.SessionId)) // Only show button if there's a session
+        {
+            <button class="btn btn-danger" @onclick="HandleDeleteSessionClick" title="Șterge sesiunea asociată">
+                <i class="fas fa-trash-alt"></i> Șterge Sesiunea
+            </button>
+        }
+        else
+        {
+            <button class="btn btn-secondary" disabled title="Nicio sesiune de șters">
+                <i class="fas fa-trash-alt"></i> Nicio Sesiune
+            </button>
+        }
     </div>
 </div>
 
@@ -29,7 +38,8 @@
     [Parameter]
     public Booth Booth { get; set; }
 
-
+    [Parameter]
+    public EventCallback<Booth> OnDeleteSessionClicked { get; set; }
     private string GetBoothImageUrl()
     {
         // Replace these with your actual image URLs or paths
@@ -49,5 +59,21 @@
     private void HandleActionButtonClick()
     {
         Console.WriteLine(" click");
+    }
+
+    private async Task HandleDeleteSessionClick()
+    {
+        if (Booth != null && OnDeleteSessionClicked.HasDelegate)
+        {
+            await OnDeleteSessionClicked.InvokeAsync(Booth); // Pass the Voter object back to the parent's handler
+        }
+        else if (Booth == null)
+        {
+            Console.WriteLine("BoothCard: HandleDeleteSessionClick called but Booth is null.");
+        }
+        else
+        {
+            Console.WriteLine("BoothCard: HandleDeleteSessionClick called but OnDeleteSessionClicked delegate is not set.");
+        }
     }
 }

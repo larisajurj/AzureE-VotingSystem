@@ -13,6 +13,7 @@ public interface IPollingStationClient
     Task SaveSignature(Guid recordId, string signature);
     Task<List<VotingRecord>?> GetRecordsByStatus(string assignedMemberId, string status);
     Task<List<Booth>> GetBooths(string pollingStationId);
+    Task DeleteBoothSession(string pollingStationId, int boothId);
     Task ChangeStatusOfRecord(Guid voterId, string status);
 
 }

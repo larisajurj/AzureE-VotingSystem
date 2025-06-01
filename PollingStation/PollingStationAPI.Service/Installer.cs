@@ -12,5 +12,6 @@ public static class Installer
         services.AddScoped<ICommitteeMemberService, CommitteeMemberService>();
         services.AddScoped<IElectoralRegisterService, ElectoralRegisterService>();
         services.AddScoped<IVotingRecordService, VotingRecordService>();
+        services.AddScoped<ICandidateService, CandidateService>();
     }
 }

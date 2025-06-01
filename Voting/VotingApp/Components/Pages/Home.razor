@@ -17,6 +17,8 @@
 @inject CircuitHandlerService CircuitHandlerService
 @inject SignalRService VotingService
 @inject IPollingStationClient PollingStationClient
+@inject IVotingClient votingClient
+@inject NavigationManager NavigationManager
 
 @initializationError
 
@@ -34,15 +36,62 @@
 }
 else
 {
-    <div class="content">
-        <div class="card">
-            <div class="card-header">
-                <h1>You can vote!</h1>
+    <div class="candidate-selection-screen">
+        <h2 class="text-center mb-4" style="user-select: none;">Alegeți candidatul</h2>
+        @if (CandidatesList != null && CandidatesList.Any())
+        {
+            <div class="candidate-grid @(showConfirmationDialog ? "blurred-background" : "")">
+                @foreach (var candidate in CandidatesList)
+                {
+                    <div class="candidate-square" @onclick="() => HandleCandidateSelection(candidate)"
+                    style="background-color: @GetSanitizedColor(candidate.Color); border: 3px solid @GetDarkenedColor(candidate.Color, 0.2);">
+                        <div class="candidate-info">
+                            <h4 class="candidate-name">@candidate.Name</h4>
+                            <p class="candidate-party">@candidate.Party</p>
+                        </div>
+                    </div>
+                }
             </div>
-            <div class="card-body">
-                <p>Your Session ID: @CircuitHandlerService.CircuitId</p>
+        }
+        else
+        {
+            <p class="text-center">Nu sunt disponibili candidați pentru afișare.</p>
+        }
+
+        @* --- Confirmation Dialog --- *@
+        @if (showConfirmationDialog && candidatePendingConfirmation != null)
+        {
+            <div class="confirmation-overlay">
+                <div class="confirmation-box">
+                    @if (isSubmittingVote)
+                    {
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Se procesează...</span>
+                            </div>
+                            <p class="mt-2">Se înregistrează votul...</p>
+                        </div>
+                    }
+                    else if (voteSubmissionSuccess)
+                    {
+                        <div class="text-center">
+                            <i class="fas fa-check-circle fa-3x text-success mb-2"></i>
+                            <p>Vot înregistrat cu succes!</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <p>Ați ales candidatul: <strong>@candidatePendingConfirmation.Name</strong></p>
+                        <p>Confirmați?</p>
+                        <div class="confirmation-buttons">
+                            <button class="btn btn-success me-2" @onclick="ConfirmVote" disabled="@isSubmittingVote">Da</button>
+                            <button class="btn btn-danger" @onclick="CancelConfirmation" disabled="@isSubmittingVote">Nu</button>
+                        </div>
+                    }
+                </div>
             </div>
-        </div>
+        }
+        @* --- End Confirmation Dialog --- *@
     </div>
 }
 
@@ -57,7 +106,11 @@ else
     private bool IsLocked = true;
     private bool IsUnlocking = false;
     private IUserOnlineService UserOnlineService;
-
+    private List<Candidate>? CandidatesList { get; set; } = new();
+    private Candidate? candidatePendingConfirmation;
+    private bool showConfirmationDialog = false;
+    private bool isSubmittingVote = false; 
+    private bool voteSubmissionSuccess = false;
     protected override async Task OnInitializedAsync()
     {
         VotingService.OnAppUnlocked += HandleAppUnlockedFromServer;
@@ -78,6 +131,7 @@ else
             UserOnlineService = UserOnlineServiceFactory.GetOrCreate(oid);
             _pollingStationId = UserOnlineService.PollingStation?.Id;
             Console.WriteLine($"Home using UserOnlineService [{UserOnlineService.InstanceId}]");
+            CandidatesList = await PollingStationClient.GetCandidates();
         }
         await ConnectAndRegister();
     }
@@ -224,6 +278,129 @@ else
 
         }
         await InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleCandidateSelection(Candidate candidate)
+    {
+        candidatePendingConfirmation = candidate;
+        showConfirmationDialog = true;
+        // StateHasChanged(); // Usually not needed if an event handler triggers it, Blazor is smart.
+    }
+
+    private async Task ConfirmVote()
+    {
+        if (candidatePendingConfirmation == null) return;
+
+        isSubmittingVote = true;
+        voteSubmissionSuccess = false; // Reset success state
+        StateHasChanged(); // Show spinner
+
+        bool success = false;
+        try
+        {
+            Console.WriteLine($"VOTE CONFIRMED for: {candidatePendingConfirmation.Name}, ID: {candidatePendingConfirmation.Id}, Party: {candidatePendingConfirmation.Party}");
+            Ballot vote = new Ballot()
+                {
+                    BallotId = Guid.NewGuid(), 
+                    TimestampUtc = DateTime.UtcNow,
+                    CandidateVoted = candidatePendingConfirmation.Id, 
+                    PollingStation = new PollingStationInfo(
+                        Id: UserOnlineService.PollingStation.Id,
+                        Name: UserOnlineService.PollingStation.Name,
+                        Representative: UserOnlineService.CommitteeMember.Id
+                    )
+                };
+            success = await votingClient.SendVoteAsync(vote); // Capture success status
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error sending vote: {ex.Message}");
+            success = false;
+        }
+
+        isSubmittingVote = false;
+
+        if (success)
+        {
+            voteSubmissionSuccess = true;
+            StateHasChanged(); // Show success checkmark
+
+            await Task.Delay(1500); // Wait for 1.5 seconds to show the checkmark
+
+            // Reset dialog states before navigation or if navigation fails
+            showConfirmationDialog = false;
+            voteSubmissionSuccess = false;
+            candidatePendingConfirmation = null;
+            // IsLocked = false; // Potentially unlock after successful vote if that's the flow
+
+            NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true); // Refresh the page
+        }
+        else
+        {
+            // Handle submission failure - perhaps show an error message in the dialog
+            // For now, just closing the dialog on failure, or you could leave it open
+            // with an error.
+            Console.WriteLine("Vote submission failed.");
+            showConfirmationDialog = false; // Or keep it open and show an error message
+            candidatePendingConfirmation = null;
+            StateHasChanged();
+        }
+    }
+
+    private void CancelConfirmation()
+    {
+        if (isSubmittingVote) return; // Don't allow cancel if already submitting
+
+        Console.WriteLine("Vote confirmation cancelled.");
+        showConfirmationDialog = false;
+        candidatePendingConfirmation = null;
+        // Reset other states if needed
+        StateHasChanged();
+    }
+
+
+    private string GetSanitizedColor(string colorInput)
+    {
+        if (string.IsNullOrWhiteSpace(colorInput)) return "#6c757d"; // Default color (grey)
+
+        var lowerColor = colorInput.ToLower();
+        if ((lowerColor.StartsWith("#") && (lowerColor.Length == 4 || lowerColor.Length == 7)))
+        {
+            return lowerColor;
+        }
+        Console.WriteLine($"Warning: Candidate color '{colorInput}' is not a recognized CSS color. Using default.");
+        return "#6c757d";
+    }
+
+    // Helper method to darken a color. This is a simplified version.
+    private string GetDarkenedColor(string baseColor, double amount)
+    {
+        string sanitizedBaseColor = GetSanitizedColor(baseColor);
+
+        if (sanitizedBaseColor.StartsWith("#"))
+        {
+            try
+            {
+                System.Drawing.Color color = System.Drawing.ColorTranslator.FromHtml(sanitizedBaseColor);
+                double r = Math.Max(0, color.R * (1 - amount));
+                double g = Math.Max(0, color.G * (1 - amount));
+                double b = Math.Max(0, color.B * (1 - amount));
+                return $"#{(int)r:X2}{(int)g:X2}{(int)b:X2}";
+            }
+            catch
+            {
+                return "#343a40"; 
+            }
+        }
+        // For named colors, provide a few common darker versions or a default dark color
+        return sanitizedBaseColor switch
+        {
+            "blue" => "darkblue",
+            "red" => "darkred",
+            "green" => "darkgreen",
+            "yellow" => "goldenrod", 
+            _ => "#343a40" 
+        };
     }
 
 }

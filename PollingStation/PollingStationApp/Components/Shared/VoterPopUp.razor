@@ -175,6 +175,7 @@
         {
             Console.WriteLine($"VoterPopUp: Button clicked. Invoking OnAllowVotingClicked for Voter ID: {Voter.Id}");
             await OnAllowVotingClicked.InvokeAsync(Voter); // Pass the Voter object back to the parent's handler
+
         }
         else if (Voter == null)
         {

@@ -15,6 +15,7 @@
 @inject SignalRService signalRService
 @inject IUserOnlineService UserOnlineService
 @inject IPollingStationClient pollingStationClient
+@inject NavigationManager NavigationManager
 
 <div class="content">
     @if (isLoading && (pendingRecords == null || pendingRecords.Any() == false))
@@ -129,6 +130,7 @@
         isLoading = true;
         currentVotingRecord = null;
         await InvokeAsync(StateHasChanged);
+        NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
     }
 
     private void HandleRecordClick(VotingRecord record)

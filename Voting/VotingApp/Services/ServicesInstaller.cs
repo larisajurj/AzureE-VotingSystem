@@ -12,23 +12,24 @@ public static class ServicesInstaller
         services.AddScoped<SignalRService>();
         services.AddScoped<CircuitHandlerService>();
         services.AddScoped<CircuitHandler>(sp => sp.GetRequiredService<CircuitHandlerService>());
-        //services.AddScoped<IUserOnlineService, UserOnlineService>();
         services.AddSingleton<IUserOnlineServiceFactory, UserOnlineServiceFactory>();
 
         return services;
     }
 
-    public static IServiceCollection AddPollingStationClient(this IServiceCollection services, IConfiguration configuration)
-    {
-        var x = configuration["ClientConfigurations:PollingStationClient:BaseURL"];
-        
+    public static IServiceCollection AddHttpClients(this IServiceCollection services, IConfiguration configuration)
+    {        
         services.AddHttpClient(name: configuration["ClientConfigurations:PollingStationClient:ClientName"], (client) =>
         {
-           // client.DefaultRequestHeaders.Add(configuration["ClientConfigurations:PollingStationClient:KeyHeaderName"], configuration["ClientConfigurations:PollingStationClient:Key"]);
             client.BaseAddress = new Uri(configuration["ClientConfigurations:PollingStationClient:BaseURL"]);
         });
-        //services.AddScoped<ITokenProvider, TokenProvider>();
         services.AddScoped<IPollingStationClient, PollingStationClient>();
+
+        services.AddHttpClient(name: configuration["ClientConfigurations:VotingFunction:ClientName"], (client) =>
+        {
+            client.BaseAddress = new Uri(configuration["ClientConfigurations:VotingFunction:BaseURL"]);
+        });
+        services.AddScoped<IVotingClient, VotingClient>();
         return services;
 
 

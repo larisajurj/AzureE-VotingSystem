@@ -56,8 +56,8 @@ resource "azurerm_cosmosdb_sql_container" "cosmos_summary_sql_container" {
 }
 
 # Store information about voting decisions
-resource "azurerm_cosmosdb_sql_container" "cosmos_logs_sql_container" {
-  name                  = "Log"
+resource "azurerm_cosmosdb_sql_container" "cosmos_candidate_sql_container" {
+  name                  = "Candidate"
   resource_group_name   = var.resource_group
   account_name          = azurerm_cosmosdb_account.cosmos_acc.name
   database_name         = azurerm_cosmosdb_sql_database.cosmos_sql_database.name

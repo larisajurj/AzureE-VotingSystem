@@ -10,4 +10,5 @@ public interface IPollingStationClient
     Task<Booth?> GetBoothById(string pollingStationId, int boothId);
     Task<PollingStation?> GetStationByUserId();
     Task<CommitteeMember?> GetCommitteeMember();
+    Task<List<Candidate>> GetCandidates();
 }

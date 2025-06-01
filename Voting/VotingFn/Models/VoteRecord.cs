@@ -2,7 +2,7 @@
 
 public class VoteRecord
 {
-	public required Guid RecordId { get; set; }
+	//public required Guid RecordId { get; set; }
 	public required Guid? BallotId { get; set; }
 	public required DateTime TimestampUtc { get; set; }
 	public required string CandidateVoted { get; set; }
@@ -11,13 +11,13 @@ public class VoteRecord
 	public VoteRecord() { }
 
 	public VoteRecord(
-		Guid recordId,
+		//Guid recordId,
 		Guid? ballotId,
 		DateTime timestampUtc,
 		string candidateVoted,
 		PollingStationInfo pollingStation)
 	{
-		RecordId = recordId;
+		//RecordId = recordId;
 		BallotId = ballotId;
 		TimestampUtc = timestampUtc;
 		CandidateVoted = candidateVoted;

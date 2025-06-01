@@ -51,5 +51,11 @@ public static class Installer
             var client = s.GetRequiredService<CosmosClient>();
             return new VotingRecordRepository(client);
         });
+
+        services.AddScoped<IRepository<Candidate, Guid>>(s =>
+        {
+            var client = s.GetRequiredService<CosmosClient>();
+            return new CandidateRepository(client);
+        });
     }
 }
