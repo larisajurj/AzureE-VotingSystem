@@ -6,7 +6,7 @@
         <h6 class="card-title mb-2">Cabina nr @Booth.Id</h6>
         <p class="card-text small">
             Status: <strong class="@(Booth.Status?.ToLower() == "unlocked" ? "text-success" : "text-danger")">
-                @(Booth.Status?.ToLower() == "unlocked" ? "Deschisă" : "Închisă")
+                @(Booth?.SessionId == null ? "Neînregistrată" : Booth.Status?.ToLower() == "unlocked" ? "Deschisă" : "Închisă")
             </strong>
             <br>
             @if (!string.IsNullOrEmpty(Booth.SessionId))
@@ -43,6 +43,8 @@
     private string GetBoothImageUrl()
     {
         // Replace these with your actual image URLs or paths
+        if (Booth?.SessionId == null)
+            return "/assets/unregistered-booth.png";
         if (Booth?.Status?.ToLower() == "locked")
         {
             // Placeholder for a locked booth image

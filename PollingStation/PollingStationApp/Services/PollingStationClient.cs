@@ -229,4 +229,28 @@ public class PollingStationClient : IPollingStationClient
             throw new UnauthorizedAccessException();
         }
     }
+
+    public async Task<string> GetAnswer(string question)
+    {
+        var client = this.clientFactory.CreateClient(this.clientName);
+
+        if (user != null)
+        {
+
+            var token = await tokenProvider.GetAccessTokenAsync(user);
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            var jsonPayload = System.Text.Json.JsonSerializer.Serialize(new AssistantQuestionRequest { Question = question });
+            var content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json");
+
+            var result = await client.PostAsync($"/api/assistant/ask", content);
+            result.EnsureSuccessStatusCode();
+            var response = await result.Content.ReadFromJsonAsync<AssistantQuestionAnswer>();
+            return response?.Answer ?? "Nu s-a putut genera un raspuns.";
+        }
+        else
+        {
+            throw new UnauthorizedAccessException();
+        }
+    }
 }

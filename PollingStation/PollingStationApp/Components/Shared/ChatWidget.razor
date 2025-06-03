@@ -1,0 +1,175 @@
+﻿@using PollingStationApp.Models
+@using PollingStationApp.Services.Abstractions
+@inject IJSRuntime JSRuntime // For scrolling (optional enhancement)
+@inject IPollingStationClient PollingStationClient
+@rendermode InteractiveServer
+
+<div class="chat-widget-container">
+    @if (!isChatOpen)
+    {
+        <div class="chat-bubble" @onclick="ToggleChatWindow" title="Deschide chat">
+            @* Use a Font Awesome icon or an SVG. Ensure Font Awesome is included in your project. *@
+            <i class="fas fa-comments"></i>
+        </div>
+    }
+
+    @if (isChatOpen)
+    {
+        <div class="chat-window">
+            <div class="chat-header">
+                <span>Chat Suport</span>
+                <button class="close-btn" @onclick="ToggleChatWindow" title="Închide chat">&times;</button>
+            </div>
+            <div class="chat-messages" @ref="chatMessagesContainer">
+                @foreach (var message in messages.OrderBy(m => m.Timestamp))
+                {
+                    <div @key="message.Id" class="message @(message.IsUserMessage ? "user-message" : "bot-message")">
+                        <div class="message-sender">@message.Sender</div>
+                        <div class="message-text">@message.Text</div>
+                        <div class="message-timestamp">@message.Timestamp.ToLocalTime().ToString("HH:mm")</div>
+                    </div>
+                }
+                @if (isWaitingForResponse)
+                {
+                    <div class="message bot-message typing-indicator">
+                        <i>Bot-ul scrie...</i>
+                    </div>
+                }
+            </div>
+            <div class="chat-input-area">
+                <input type="text" @bind="currentUserMessage" @bind:event="oninput"
+                       @onkeyup="HandleInputKeyUp"
+                       placeholder="Scrie întrebarea ta..."
+                       disabled="@isWaitingForResponse" />
+                <button @onclick="SendMessage" disabled="@(isWaitingForResponse || string.IsNullOrWhiteSpace(currentUserMessage))">
+                    <i class="fas fa-paper-plane"></i> Trimite
+                </button>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private bool isChatOpen = false;
+    private string currentUserMessage = string.Empty;
+    private List<ChatMessage> messages = new List<ChatMessage>();
+    private bool isWaitingForResponse = false;
+
+    // Reference to the chat messages container for scrolling
+    private ElementReference chatMessagesContainer;
+
+    private void ToggleChatWindow()
+    {
+        isChatOpen = !isChatOpen;
+        if (isChatOpen)
+        {
+            // Add a default welcome message if the chat is empty
+            if (!messages.Any())
+            {
+                messages.Add(new ChatMessage { Text = "Salut! Cu ce te pot ajuta astăzi?", IsUserMessage = false, Sender = "Asistent Virtual" });
+            }
+            ScrollToBottom(); // Scroll when opening
+        }
+        StateHasChanged();
+    }
+
+    private async Task HandleInputKeyUp(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(currentUserMessage) && !isWaitingForResponse)
+        {
+            await SendMessage();
+        }
+    }
+
+    private async Task SendMessage()
+    {
+        if (string.IsNullOrWhiteSpace(currentUserMessage) || isWaitingForResponse)
+            return;
+
+        var userMessage = new ChatMessage
+            {
+                Text = currentUserMessage,
+                IsUserMessage = true,
+                Sender = "Utilizator"
+            };
+        messages.Add(userMessage);
+        var messageToSendToFunction = currentUserMessage; // Capture before clearing
+        currentUserMessage = string.Empty; // Clear input field
+
+        isWaitingForResponse = true;
+        StateHasChanged(); // Update UI to show user message and loading indicator
+        ScrollToBottom();
+
+        // Simulate calling your function and getting a response
+        var botResponseText = await PollingStationClient.GetAnswer(messageToSendToFunction);
+
+        messages.Add(new ChatMessage
+            {
+                Text = botResponseText,
+                IsUserMessage = false,
+                Sender = "Asistent Virtual"
+            });
+
+        isWaitingForResponse = false;
+        StateHasChanged(); // Update UI with bot response
+        ScrollToBottom();
+    }
+
+    // THIS IS WHERE YOU IMPLEMENT YOUR CUSTOM FUNCTION LOGIC
+    private async Task<string> GetAnswerFromFunction(string userQuestion)
+    {
+        Console.WriteLine($"User asked: {userQuestion}"); // Log to console
+
+        // Simulate network delay or processing time
+        await Task.Delay(1500); // milliseconds
+
+        // Your custom logic to generate an answer based on userQuestion
+        string response;
+        if (userQuestion.ToLower().Contains("salut") || userQuestion.ToLower().Contains("bună"))
+        {
+            response = "Salut! Cum te pot ajuta?";
+        }
+        else if (userQuestion.ToLower().Contains("ajutor"))
+        {
+            response = "Sigur, te rog specifică problema pentru care ai nevoie de ajutor.";
+        }
+        else if (userQuestion.ToLower().Contains("program"))
+        {
+            response = "Programul nostru de lucru este Luni-Vineri, 09:00 - 17:00.";
+        }
+        else
+        {
+            response = $"Am primit întrebarea ta: '{userQuestion}'. Momentan sunt un bot simplu, dar un operator uman va prelua în curând dacă este necesar.";
+            // In a real application, you might call an Azure Function, a service, a database, or a more complex AI model here.
+        }
+        return response;
+    }
+
+    // Optional: Scroll to bottom of messages
+    // This uses JS Interop. Call this after adding new messages.
+    private async Task ScrollToBottom()
+    {
+        if (isChatOpen)
+        {
+            // Yield to allow Blazor to render the new message before scrolling
+            await Task.Yield();
+            try
+            {
+                await JSRuntime.InvokeVoidAsync("scrollToBottom", chatMessagesContainer);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error scrolling to bottom: {ex.Message}");
+            }
+        }
+    }
+
+    // JavaScript function for scrolling (add this to your _Host.cshtml or index.html)
+    // <script>
+    //   window.scrollToBottom = (element) => {
+    //     if (element) {
+    //       element.scrollTop = element.scrollHeight;
+    //     }
+    //   }
+    // </script>
+}

@@ -1,6 +1,7 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using PollingStationAPI.Service.Services;
 using PollingStationAPI.Service.Services.Abstractions;
+using System.Net.Http.Headers;
 
 namespace PollingStationAPI.Service;
 
@@ -13,5 +14,13 @@ public static class Installer
         services.AddScoped<IElectoralRegisterService, ElectoralRegisterService>();
         services.AddScoped<IVotingRecordService, VotingRecordService>();
         services.AddScoped<ICandidateService, CandidateService>();
+
+        services.AddHttpClient("VirtualAssistantClient", client =>
+         {
+             client.Timeout = TimeSpan.FromSeconds(120); 
+             client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+         });
+        
+         services.AddSingleton<IVirtualAssistantService, VirtualAssistantService>();
     }
 }
