@@ -1,4 +1,5 @@
-﻿using Azure.Storage.Blobs;
+﻿using Azure;
+using Azure.Storage.Blobs;
 using Azure.Storage.Blobs.Models;
 using Azure.Storage.Blobs.Specialized;
 using System.Text;
@@ -10,6 +11,9 @@ namespace VotingFn.Clients;
 
 public class VotingService : IVotingService
 {
+	private readonly JsonSerializerOptions _jsonSerializerOptions =
+		new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
 	public async Task WriteStringToBlobAsync(
 		BlobServiceClient blobServiceClient,
 		string containerName,
@@ -29,7 +33,7 @@ public class VotingService : IVotingService
 			{
 				Console.WriteLine($"Uploading data to {blobClient.Uri}...");
 
-				await blobClient.UploadAsync(stream, overwrite: true); 
+				await blobClient.UploadAsync(stream, overwrite: true);
 
 				Console.WriteLine($"Successfully uploaded blob '{blobName}'.");
 			}
@@ -44,7 +48,7 @@ public class VotingService : IVotingService
 		catch (Exception ex)
 		{
 			Console.Error.WriteLine($"An unexpected error occurred: {ex.Message}");
-			throw; 
+			throw;
 		}
 	}
 
@@ -131,4 +135,91 @@ public class VotingService : IVotingService
 
 		return voteRecords;
 	}
+
+	public async Task<List<VoteRecord>> GetVotesForCandidateAsync(
+        BlobServiceClient blobServiceClient,
+        string containerName,
+        string targetCandidateIdentifier, // The name or ID of the candidate you're searching for
+        string? pollingStationIdFilter = null, // Optional: Filter by a specific polling station ID
+        DateTime? dateFilter = null)          // Optional: Filter by a specific date
+    {
+        var matchingVotes = new List<VoteRecord>();
+        BlobContainerClient containerClient = blobServiceClient.GetBlobContainerClient(containerName);
+
+        string prefix = "raw/";
+        if (dateFilter.HasValue)
+        {
+            prefix += $"year={dateFilter.Value:yyyy}/month={dateFilter.Value:MM}/day={dateFilter.Value:dd}/";
+            if (!string.IsNullOrEmpty(pollingStationIdFilter))
+            {
+                prefix += $"station={pollingStationIdFilter}/";
+            }
+        }
+
+        Console.WriteLine($"Listing blobs with prefix: '{prefix}'");
+
+        try
+        {
+            await foreach (BlobItem blobItem in containerClient.GetBlobsAsync(prefix: prefix))
+            {
+                if (!string.IsNullOrEmpty(pollingStationIdFilter) && !blobItem.Name.Contains($"station={pollingStationIdFilter}/"))
+                {
+                    continue;
+                }
+
+                if (!blobItem.Name.EndsWith(".jsonl") || !blobItem.Name.Contains("votes_"))
+                {
+                    continue;
+                }
+
+                Console.WriteLine($"Processing blob: {blobItem.Name}");
+                BlobClient blobClient = containerClient.GetBlobClient(blobItem.Name);
+
+                try
+                {
+                    BlobDownloadResult downloadResult = await blobClient.DownloadContentAsync();
+                    string content = downloadResult.Content.ToString();
+
+                    using (StringReader stringReader = new StringReader(content))
+                    {
+                        string? line;
+                        while ((line = await stringReader.ReadLineAsync()) != null)
+                        {
+                            if (string.IsNullOrWhiteSpace(line))
+                                continue;
+
+                            try
+                            {
+                                VoteRecord? voteRecord = JsonSerializer.Deserialize<VoteRecord>(line, _jsonSerializerOptions);
+
+                                if (voteRecord != null &&
+                                    voteRecord.CandidateVoted.Equals(targetCandidateIdentifier, StringComparison.OrdinalIgnoreCase)) // Adjust comparison as needed
+                                {
+                                    matchingVotes.Add(voteRecord);
+                                }
+                            }
+                            catch (JsonException jsonEx)
+                            {
+                                Console.Error.WriteLine($"Error deserializing line from blob {blobItem.Name}: {jsonEx.Message}. Line: '{line.Substring(0, Math.Min(line.Length, 100))}'");
+                            }
+                        }
+                    }
+                }
+                catch (RequestFailedException rfEx)
+                {
+                    Console.Error.WriteLine($"Error downloading/accessing blob {blobItem.Name}: {rfEx.Message} (Status: {rfEx.Status})");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"An error occurred while listing or processing blobs: {ex.Message}");
+            throw;
+        }
+
+
+        return matchingVotes;
+    }
+
+
 }

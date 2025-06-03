@@ -60,4 +60,41 @@ public class VotingFunction
 		await _votingService.AppendStringToBlobAsync(serviceClient, "votes-container", vote.GetBlobPath(vote), serializeVote);
 		return new OkObjectResult("Successfully registered");
 	}
+
+	[Function("ReadVotes")]
+	public async Task<IActionResult> ReadVotes(
+	[HttpTrigger(AuthorizationLevel.Anonymous, WebRequestMethods.Http.Post, Route = "ReadVotes")] HttpRequestData req,
+	CancellationToken cancellationToken)
+	{
+		string requestBody;
+
+		using (var reader = new System.IO.StreamReader(req.Body))
+		{
+			requestBody = await reader.ReadToEndAsync();
+			_logger.LogDebug("Request Body: {Body}", requestBody); // Log raw body if needed (be careful with sensitive data)
+		}
+
+
+		if (string.IsNullOrEmpty(requestBody))
+		{
+			_logger.LogWarning("Request body was null or empty.");
+			return new BadRequestResult();
+		}
+
+		var vote = JsonSerializer.Deserialize<VoteIdentifier>(
+			requestBody,
+			new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+		if (vote == null)
+		{
+			_logger.LogWarning("Failed to deserialize request body into VoteIdentifier. Body content: {Body}", requestBody);
+			return new BadRequestResult();
+		}
+
+		BlobServiceClient serviceClient = _blobServiceClientFactory.GetClient(); 
+
+		var count = await _votingService.GetVotesForCandidateAsync(serviceClient, "votes-container", vote.targetCandidateIdentifier, vote.pollingStationIdFilter, vote.dateFilter);
+		return new OkObjectResult(count);
+	}
+
 }
