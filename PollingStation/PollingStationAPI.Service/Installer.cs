@@ -1,4 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
+using PollingStationAPI.Service.Factories;
+using PollingStationAPI.Service.Service;
 using PollingStationAPI.Service.Services;
 using PollingStationAPI.Service.Services.Abstractions;
 using System.Net.Http.Headers;
@@ -14,6 +16,8 @@ public static class Installer
         services.AddScoped<IElectoralRegisterService, ElectoralRegisterService>();
         services.AddScoped<IVotingRecordService, VotingRecordService>();
         services.AddScoped<ICandidateService, CandidateService>();
+        services.AddSingleton<IBlobServiceClientFactory, BlobServiceClientFactory>();
+        services.AddScoped<IVoteReaderService, VoteReaderService>();
 
         services.AddHttpClient("VirtualAssistantClient", client =>
          {

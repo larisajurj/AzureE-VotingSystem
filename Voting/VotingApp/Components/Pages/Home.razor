@@ -307,7 +307,9 @@ else
                     PollingStation = new PollingStationInfo(
                         Id: UserOnlineService.PollingStation.Id,
                         Name: UserOnlineService.PollingStation.Name,
-                        Representative: UserOnlineService.CommitteeMember.Id
+                        Representative: UserOnlineService.CommitteeMember.Id,
+                        Locality: UserOnlineService.PollingStation.Locality,
+                        ATU: UserOnlineService.PollingStation.ATU
                     )
                 };
             success = await votingClient.SendVoteAsync(vote); // Capture success status

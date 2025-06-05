@@ -25,7 +25,7 @@ public static class ServicesInstaller
         services.AddScoped<IPollingStationClient, PollingStationClient>();
         return services;
 
-
     }
+
 
 }

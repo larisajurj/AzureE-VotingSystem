@@ -7,7 +7,8 @@ public class PollingStation
     [JsonProperty("id")]
     public required string Id { get; set; }
     public string? Name { get; set; }
-    public string? City { get; set; }
+    public string? ATU { get; set; }
+    public string? Locality { get; set; }
     public string? Country { get; set; }
     public required int Siruta { get; set; }
     public required int MaxBooths { get; set; }

@@ -39,7 +39,9 @@ public class VotingRecordController : ControllerBase
                 Id = Guid.NewGuid(),
                 PollingStationId = pollingStationId,
                 VoterId = voterId,
-                VotingStatus = "Verified"
+                VotingStatus = "Verified",
+                Timestamp = DateTime.Now
+
             };
             Console.WriteLine($"Is Id empty? {newRecord.Id == Guid.Empty}"); // This will print "False"
             Console.WriteLine($"Generated Id: {newRecord.Id}");

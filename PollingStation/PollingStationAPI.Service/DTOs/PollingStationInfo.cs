@@ -1,4 +1,4 @@
-﻿namespace VotingApp.Models;
+﻿namespace PollingStationAPI.Service.DTOs;
 
 public record PollingStationInfo(
     string Id,

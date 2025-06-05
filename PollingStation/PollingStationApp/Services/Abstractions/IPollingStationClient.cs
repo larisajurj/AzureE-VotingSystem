@@ -16,5 +16,7 @@ public interface IPollingStationClient
     Task DeleteBoothSession(string pollingStationId, int boothId);
     Task ChangeStatusOfRecord(Guid voterId, string status);
     Task<string> GetAnswer(string question);
+    Task<List<Candidate>> GetCandidates();
+    Task<List<VoteBallot>?> GetVotesForCandidateAsync(VoteIdentifier identifier);
 
 }

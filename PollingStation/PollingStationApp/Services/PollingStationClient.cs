@@ -253,4 +253,39 @@ public class PollingStationClient : IPollingStationClient
             throw new UnauthorizedAccessException();
         }
     }
+
+    public async Task<List<VoteBallot>?> GetVotesForCandidateAsync(VoteIdentifier identifier)
+    {
+        var client = this.clientFactory.CreateClient(this.clientName);
+
+        var jsonPayload = System.Text.Json.JsonSerializer.Serialize(identifier);
+        var content = new StringContent(jsonPayload, System.Text.Encoding.UTF8, "application/json");
+
+        var result = await client.PostAsync($"/api/Results", content);
+        result.EnsureSuccessStatusCode();
+        var response = await result.Content.ReadFromJsonAsync<List<VoteBallot>>();
+        return response;
+    }
+
+    public async Task<List<Candidate>> GetCandidates()
+    {
+        var client = this.clientFactory.CreateClient(this.clientName);
+
+        if (user != null)
+        {
+            try
+            {
+                var token = await tokenProvider.GetAccessTokenAsync(user);
+                client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+                var result = await client.GetAsync($"/api/Candidate");
+                var content = await result.Content.ReadFromJsonAsync<List<Candidate>>();
+                return content;
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+        else return null;
+    }
 }
