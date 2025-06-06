@@ -5,3 +5,8 @@
     flex-direction: row !important;
     background-color: pink;
 }
+
+.list-group-item {
+    background-color: var(--selected-background-color);
+    color: white;
+}

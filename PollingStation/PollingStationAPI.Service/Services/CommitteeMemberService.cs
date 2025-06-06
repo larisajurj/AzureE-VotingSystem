@@ -41,6 +41,23 @@ public class CommitteeMemberService : ICommitteeMemberService
         }
     }
 
+    public async Task<CommitteeMember?> GetCommitteeMemberByPollingStationIdAndRole(string pollingStationId, string role)
+    {
+        if (role == "President" || role == "Member")
+        {
+            var committeeMembers = await _committeeMemberRepository.Filter(m => m.PollingStationId == pollingStationId && m.Role == role);
+            return committeeMembers.FirstOrDefault();
+          
+        }
+        else
+        {
+            throw new Exception("Status must be President or Member");
+        }
+        
+
+
+    }
+
     public async Task<CommitteeMember> GetCommitteMember(string committeeMemberId)
     {
         return await _committeeMemberRepository.GetById(committeeMemberId) ?? throw new NotFoundException($"Committee member with Id {committeeMemberId} not found");

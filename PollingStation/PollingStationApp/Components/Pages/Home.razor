@@ -15,7 +15,6 @@
 @inject SignalRService signalRService
 @inject IUserOnlineService UserOnlineService
 @inject IPollingStationClient pollingStationClient
-@inject NavigationManager NavigationManager
 
 <div class="content">
     @if (isLoading && (pendingRecords == null || pendingRecords.Any() == false))
@@ -129,8 +128,7 @@
         isVoterPopUpVisible = false;
         isLoading = true;
         currentVotingRecord = null;
-        await InvokeAsync(StateHasChanged);
-        NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true);
+        await UpdateStatus();
     }
 
     private void HandleRecordClick(VotingRecord record)
@@ -146,6 +144,14 @@
     {
         await InvokeAsync(StateHasChanged);
     }
-    
+
+    private async Task UpdateStatus()
+    {
+        if (UserOnlineService.CommitteeMember != null && UserOnlineService.CommitteeMember.Id != null){
+            pendingRecords = await pollingStationClient.GetRecordsByStatus(UserOnlineService.CommitteeMember.Id, "Verified");
+            await InvokeAsync(StateHasChanged);
+        }
+    }
+
     
 }

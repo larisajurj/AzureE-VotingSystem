@@ -1,5 +1,4 @@
-﻿<style >
-.election-results-container {
+﻿.election-results-container {
     background-color: #1e1e1e; /* Darker background */
     color: #e0e0e0;
     padding: 20px;
@@ -11,10 +10,10 @@
 }
 
 .results-title {
-    color: #fff;
-    font-weight: bold;
+    color: var(--selected-text-color);
     margin-bottom: 15px;
-    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: -1px;
 }
 
 .view-options {
@@ -141,5 +140,3 @@
 .error-message {
     color: #ff4d4d;
 }
-
-</style >

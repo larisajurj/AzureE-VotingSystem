@@ -4,8 +4,6 @@ namespace PollingStationApp.Services;
 
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
-using Newtonsoft.Json.Linq;
-using PollingStationApp.Data.Helpers;
 using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
@@ -20,6 +18,7 @@ public class SignalRService : IAsyncDisposable
     public event Action<string, string>? OnAppUnlocked;
     public event Func<VotingRecord, Task> OnVerifyVoterSignalReceived;
     public event Action? OnConnectionStateChanged;
+    public event Func<Task> OnBoothStatusChanged;
     private readonly ITokenProvider _tokenProvider;
     public SignalRService(IConfiguration configuration, ITokenProvider tokenProvider) 
     {
@@ -59,6 +58,7 @@ public class SignalRService : IAsyncDisposable
             if (OnVerifyVoterSignalReceived != null)
             {
                 await OnVerifyVoterSignalReceived.Invoke(record);
+                OnConnectionStateChanged?.Invoke();
             }
         });
 
@@ -67,6 +67,19 @@ public class SignalRService : IAsyncDisposable
             Console.WriteLine($"SignalRService: UnlockApp received: PS {psId}, Cabin {cabin}");
             OnAppUnlocked?.Invoke(psId, cabin);
         });
+
+        _hubConnection.On<string>("UpdateBoothStatus", async (pollingStationId) =>
+        {
+            // This code will execute when the server sends the message.
+            Console.WriteLine($"Received UpdateBoothStatus for station: {pollingStationId}");
+
+            // Optional: Check if the update is for the currently viewed station
+            if (_currentPollingStationId != null && _currentPollingStationId == pollingStationId)
+            {
+                OnBoothStatusChanged?.Invoke();
+            }
+        });
+
 
         try
         {
@@ -94,6 +107,7 @@ public class SignalRService : IAsyncDisposable
             {
                 // Make sure your Hub's "UnlockApp" method expects these parameters
                 await _hubConnection.InvokeAsync("UnlockApp", _currentPollingStationId, cabinToUnlock.ToString());
+                OnConnectionStateChanged?.Invoke();
             }
             catch (Exception ex)
             {

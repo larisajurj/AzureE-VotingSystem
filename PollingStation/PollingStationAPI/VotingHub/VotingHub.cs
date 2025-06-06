@@ -10,11 +10,13 @@ namespace PollingStationAPI.VotingHub;
 public class VotingHub : Hub<IVotingHub>
 {
     private readonly IPollingStationService _pollingStationService;
+    private readonly ICommitteeMemberService _committeeMemberService;
     private readonly IVotingRecordService _recordService;
-    public VotingHub(IPollingStationService pollingStationService, IVotingRecordService recordService)
+    public VotingHub(IPollingStationService pollingStationService, IVotingRecordService recordService, ICommitteeMemberService committeeMemberService)
     {
         _pollingStationService = pollingStationService;
         _recordService = recordService;
+        _committeeMemberService = committeeMemberService;
     }
 
     public async Task<int> RegisterSession(string sessionId, string pollingStationId) //Removed userId
@@ -24,6 +26,12 @@ public class VotingHub : Hub<IVotingHub>
         try
         {
             var booth = await _pollingStationService.RegisterSession(sessionId, pollingStationId);
+
+            var president = await _committeeMemberService.GetCommitteeMemberByPollingStationIdAndRole(pollingStationId, "President");
+            if (president == null)
+                throw new HubException();
+            await Clients.User(president.Id).UpdateBoothStatus(pollingStationId);
+
             return booth.Id; 
         }
         catch (HubException)
@@ -43,7 +51,15 @@ public class VotingHub : Hub<IVotingHub>
         try
         {
             int cabinNr = Int32.Parse(boothId);
+
+            var president = await _committeeMemberService.GetCommitteeMemberByPollingStationIdAndRole(pollingStationId, "President");
+            if (president == null)
+                throw new HubException();
+
+            await _pollingStationService.UpdateStatusBooth(pollingStationId, cabinNr, "unlocked");
             await _pollingStationService.DeleteSession(cabinNr, pollingStationId);
+
+            await Clients.User(president.Id).UpdateBoothStatus(pollingStationId);
         }
         catch (HubException)
         {
@@ -62,9 +78,16 @@ public class VotingHub : Hub<IVotingHub>
         try
         {
             int cabinNr = Int32.Parse(cabin);
-
+            var president = await _committeeMemberService.GetCommitteeMemberByPollingStationIdAndRole(pollingStationId, "President");
+            if (president == null)
+                throw new HubException();
             await _pollingStationService.UpdateStatusBooth(pollingStationId, cabinNr, "unlocked");
-            await Clients.All.UnlockApp(pollingStationId, cabin);
+
+            //await Clients.All.UnlockApp(pollingStationId, cabin);
+            await Clients.User(president.Id)
+                            .UnlockApp(pollingStationId, cabin);            
+            await Clients.User(president.Id).UpdateBoothStatus(pollingStationId);
+
         }
         catch (HubException)
         {

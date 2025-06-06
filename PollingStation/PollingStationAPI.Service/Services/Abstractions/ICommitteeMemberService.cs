@@ -14,5 +14,7 @@ public interface ICommitteeMemberService
 
     public Task DeleteCommitteeMember(string committeeMemberId);
 
+    public Task<CommitteeMember?> GetCommitteeMemberByPollingStationIdAndRole(string pollingStationId, string role);
+
 
 }

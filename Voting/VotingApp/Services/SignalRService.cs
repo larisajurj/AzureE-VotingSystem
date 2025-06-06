@@ -187,6 +187,7 @@ public class SignalRService : IAsyncDisposable
             {
                 // Make sure your Hub's "UnlockApp" method expects these parameters
                 await _hubConnection.InvokeAsync("UnlockApp", pollingStationToUnlock, cabinToUnlock);
+               
             }
             catch (Exception ex)
             {

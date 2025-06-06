@@ -11,7 +11,7 @@
 
     <div class="filters-container">
         <div class="filter-group">
-            <label class="filter-label">LOCALITATE (JUDEȚ)</label>
+            <label class="filter-label">LOCALITATE</label>
             <select class="filter-select" @bind="SelectedLocality">
                 <option value="">Toate</option>
                 @foreach (var locality in _distinctLocalities)
@@ -22,7 +22,7 @@
         </div>
 
         <div class="filter-group">
-            <label class="filter-label">ATU (UAT)</label>
+            <label class="filter-label">Unitate Administativ Teritoriala</label>
             <select class="filter-select" @bind="SelectedATU">
                 <option value="">Toate</option>
                 @foreach (var atu in _distinctATUs)

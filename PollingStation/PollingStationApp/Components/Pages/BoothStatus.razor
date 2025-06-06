@@ -1,10 +1,12 @@
 ﻿@page "/boothStatus"
 @using PollingStationApp.Components.Shared
 @using PollingStationApp.Models
+@using PollingStationApp.Services
 @using PollingStationApp.Services.Abstractions
 @rendermode InteractiveServer
 @inject IUserOnlineService UserOnlineService
 @inject IPollingStationClient PollingStationClient
+@inject SignalRService signalRService
 
 <PageTitle>BoothStatus</PageTitle>
 
@@ -41,7 +43,26 @@ else
         //Console.WriteLine($"BoothStatus using UserOnlineService [{UserOnlineService.InstanceId}]");
 
         await UserOnlineService.InitializationComplete.Task;
+        signalRService.OnBoothStatusChanged += UpdateBoothStatus;
 
+        await UpdateBoothStatus();
+        Console.WriteLine("OnInitializedAsync: Exiting.");
+        isLoading = false;
+
+    }
+
+    public async Task OnDeleteSessionClicked(Booth booth)
+    {
+        if (UserOnlineService != null && UserOnlineService.PollingStation != null){
+            await PollingStationClient.DeleteBoothSession(UserOnlineService.PollingStation.Id, booth.Id);
+            await UpdateBoothStatus();
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async Task UpdateBoothStatus()
+    {
         if (UserOnlineService.PollingStation != null && !string.IsNullOrEmpty(UserOnlineService.PollingStation.Id)) // Adjust to your actual ID property
         {
             pollingStation = await PollingStationClient.GetStationById(UserOnlineService.PollingStation.Id);
@@ -59,18 +80,10 @@ else
             Console.WriteLine("OnInitializedAsync: Condition to fetch polling station was false.");
             if (UserOnlineService.PollingStation == null) Console.WriteLine("Reason: UserOnlineService.PollingStation is null.");
             else Console.WriteLine($"Reason: UserOnlineService.PollingStation.Id is null or empty (Value: '{UserOnlineService.PollingStation.Id}').");
-            pollingStation = null; // Ensure consistent state
+            pollingStation = null; 
         }
-        // StateHasChanged(); // Often not needed if data is set before the method completes
         Console.WriteLine("OnInitializedAsync: Exiting.");
         isLoading = false;
-
-    }
-
-    public async Task OnDeleteSessionClicked(Booth booth)
-    {
-        if (UserOnlineService != null && UserOnlineService.PollingStation != null)
-            await PollingStationClient.DeleteBoothSession(UserOnlineService.PollingStation.Id, booth.Id);
         await InvokeAsync(StateHasChanged);
     }
 

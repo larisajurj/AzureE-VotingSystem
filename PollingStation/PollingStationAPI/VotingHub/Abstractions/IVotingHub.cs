@@ -9,4 +9,5 @@ public interface IVotingHub
     Task DeleteSession(string boothId, string pollingStationId);
     Task<RegisteredVoter> VerifyVoter(RegisteredVoter voter, string pollingStationId);
     Task ReceiveVerifiedVoterRecord(VotingRecord record);
+    Task UpdateBoothStatus(string pollingStationId);
 }
