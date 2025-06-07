@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using PollingStationAPI.Service.Services.Abstractions;
 using PollingStationAPI.Data.Models;
 using PollingStationAPI.Service.Exceptions;
+using Microsoft.AspNetCore.Http.HttpResults;
 
 [ApiController]
 [Route("api/[controller]")] 
@@ -44,6 +45,36 @@ public class ElectoralRegisterController : ControllerBase
             // Log the exception ex
             return BadRequest(new { message = "Failed to register voter.", error = ex.Message });
         }
+    }
+
+    /// <summary>
+    /// Registers a new voter.
+    /// </summary>
+    /// <param name="voter">The voter details to register.</param>
+    /// <returns>A confirmation of creation.</returns>
+    [HttpPost("register/multiple")]
+    [ProducesResponseType(StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult> RegisterVoters([FromBody] List<RegisteredVoter> voters)
+    {   
+        foreach(var voter in voters){
+            if (voter == null || voter.Id == Guid.Empty) // Basic validation
+            {
+                return BadRequest("Voter data is invalid or ID is missing.");
+            }
+
+            try
+            {
+                await _electoralRegisterService.RegisterVoterAsync(voter);
+            }
+            catch (Exception ex) // Catch potential exceptions from the service (e.g., duplicate)
+            {
+                // Log the exception ex
+                return BadRequest(new { message = "Failed to register voter.", error = ex.Message });
+            }
+        }
+
+        return Ok();
     }
 
     /// <summary>

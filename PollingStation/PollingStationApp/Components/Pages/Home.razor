@@ -7,6 +7,7 @@
 @using PollingStationApp.Models
 @using PollingStationApp.Services
 @using PollingStationApp.Services.Abstractions
+@using System.Text
 @attribute [StreamRendering]
 @rendermode InteractiveServer
 @inject ITokenProvider TokenProvider
@@ -17,7 +18,7 @@
 @inject IPollingStationClient pollingStationClient
 
 <div class="content">
-    @if (isLoading && (pendingRecords == null || pendingRecords.Any() == false))
+    @if (isLoading && (pendingRecords == null || !pendingRecords.Any()))
     {
         <p><em>Așteptare cerere verificare...</em></p>
     }
@@ -27,19 +28,28 @@
         {
             <VoterPopUp Voter="currentVotingRecord.Voter"
             OnAllowVotingClicked="OnAllowVotingClicked"
-            OnClosePopUp="OnClosePopUp">
+            OnClosePopUp="OnClosePopUp"
+            AssignedBoothNumber="@assignedBoothForPopup"
+            Signature="@currentVotingRecord.Signature">
             </VoterPopUp>
-            <p class="mt-2"><em>Alegător verificat: @currentVotingRecord.Voter.FirstName @currentVotingRecord.Voter.LastName</em></p>
-        }
+            @if (errorMessage != null){
+                <Row class="mt-3 justify-content-center">
+                    <Column ColumnSize="ColumnSize.Is10">
+                        <Alert Color="Color.Danger" Visible="true" class="text-center p-2">
+                            <small>@errorMessage</small>
+                        </Alert>
+                    </Column>
+                </Row>
+            }
 
+        }
     }
     else if (pendingRecords != null && pendingRecords.Any())
     {
         <div class="pending-voters-section mt-4">
             <h4>Alegători în Așteptare: @pendingRecords.Count() </h4>
-            @* Use d-flex for horizontal layout. flex-wrap is optional if you expect 5 items to always fit. *@
-            <ul class="list-group d-flex flex-row">
-                @foreach (var record in pendingRecords.Take(5)) // Limit to 5 records
+            <ul class="list-group d-flex flex-row flex-wrap">
+                @foreach (var record in pendingRecords.Take(5))
                 {
                     <li class="list-group-item list-group-item-action me-2 mb-2" style="cursor: pointer;" @onclick="() => HandleRecordClick(record)">
                         @record.Voter.FirstName @record.Voter.LastName
@@ -59,99 +69,95 @@
 </div>
 
 @code {
-    private ClaimsPrincipal? _user;
-    private HubConnection? hubConnection;
-    private string exc;
-    private RegisteredVoter Voter;
     private VotingRecord? currentVotingRecord;
     private bool isLoading = true;
     private bool isVoterPopUpVisible = false;
     private List<VotingRecord>? pendingRecords;
+    private string? assignedBoothForPopup; // Holds the assigned booth number for the popup
+    private string? errorMessage;
 
     protected override async Task OnInitializedAsync()
     {
         signalRService.OnVerifyVoterSignalReceived += HandleVerifiedVoterRecordAsync;
-        isVoterPopUpVisible = false;
+        UserOnlineService.OnChange += OnUserOnlineServiceChanged;
+        assignedBoothForPopup = null;
+        errorMessage = null;
+        await UserOnlineService.InitializationComplete.Task;
+        await UpdateStatus();
 
-        try
+        var state = await authStateProvider.GetAuthenticationStateAsync();
+        var user = state.User;
+        if (UserOnlineService.PollingStation != null)
         {
-            UserOnlineService.OnChange += OnUserOnlineServiceChanged;
-            await UserOnlineService.InitializationComplete.Task;
-            if (UserOnlineService.CommitteeMember != null && UserOnlineService.CommitteeMember.Id != null)
-                pendingRecords = await pollingStationClient.GetRecordsByStatus(UserOnlineService.CommitteeMember.Id, "Verified");
-            var state = await authStateProvider.GetAuthenticationStateAsync();
-            var user = state.User;
-            if(UserOnlineService.PollingStation != null)
-            {
-                await signalRService.InitializeAndRegisterAsync(UserOnlineService.PollingStation.Id, user);
-            }
+            await signalRService.InitializeAndRegisterAsync(UserOnlineService.PollingStation.Id, user);
         }
-        catch (Exception e)
-        {
-            exc = e.Message;
-        }
-
     }
+
     public async Task HandleVerifiedVoterRecordAsync(VotingRecord record)
     {
-        isVoterPopUpVisible = true;
-        isLoading = true;
-        currentVotingRecord = null; // Clear previous
-        await InvokeAsync(StateHasChanged);
-
-
         Console.WriteLine($"Home page: Received OnVerifiedVoterRecord event for VoterId: {record.VoterId}");
         currentVotingRecord = record;
-
+        isVoterPopUpVisible = true;
         isLoading = false;
         await InvokeAsync(StateHasChanged);
     }
 
     private async Task OnAllowVotingClicked(RegisteredVoter voterBeingAllowed)
     {
-        if (UserOnlineService.PollingStation != null && UserOnlineService.PollingStation.Id != null)
+        if (UserOnlineService.PollingStation?.Id == null) return;
+
+        var station = await pollingStationClient.GetStationById(UserOnlineService.PollingStation.Id);
+        var emptyBooth = station?.Booths.FirstOrDefault(b => b.Status == "locked" && b.SessionId != null);
+
+        if (emptyBooth != null && voterBeingAllowed?.Id != Guid.Empty)
         {
-            var station = await pollingStationClient.GetStationById(UserOnlineService.PollingStation.Id);
-            var emptyBooth = station.Booths.Where(b => b.Status == "locked").FirstOrDefault();
-            if (emptyBooth != null && voterBeingAllowed != null && voterBeingAllowed.Id != Guid.Empty)
-            {
-                exc = "invoked";
-                await pollingStationClient.ChangeStatusOfRecord(voterBeingAllowed.Id, "Voted");
-                await signalRService.RequestUnlockAppAsync(emptyBooth.Id);
-                await OnClosePopUp();
-            }
+            await pollingStationClient.ChangeStatusOfRecord(voterBeingAllowed.Id, "Voted");
+            await signalRService.RequestUnlockAppAsync(emptyBooth.Id);
+
+            // Set the booth number to pass to the popup instead of closing it
+            assignedBoothForPopup = emptyBooth.Id.ToString();
+            await InvokeAsync(StateHasChanged);
+        }else
+        {
+            errorMessage = "Nu există o cabină disponibilă. Vă rugăm așteptați ca o cabină să se elibereze. ";
         }
     }
 
     public async Task OnClosePopUp()
     {
         isVoterPopUpVisible = false;
-        isLoading = true;
         currentVotingRecord = null;
+        assignedBoothForPopup = null; // Reset for the next voter
         await UpdateStatus();
     }
 
     private void HandleRecordClick(VotingRecord record)
     {
-        Console.WriteLine($"Clicked on: {record.Voter.FirstName} {record.Voter.LastName}");
         currentVotingRecord = record;
         isLoading = false;
         isVoterPopUpVisible = true;
     }
 
-
-    private async void OnUserOnlineServiceChanged()
-    {
-        await InvokeAsync(StateHasChanged);
-    }
+    private async void OnUserOnlineServiceChanged() => await InvokeAsync(StateHasChanged);
 
     private async Task UpdateStatus()
     {
-        if (UserOnlineService.CommitteeMember != null && UserOnlineService.CommitteeMember.Id != null){
+        if (UserOnlineService.CommitteeMember?.Id != null)
+        {
+            isLoading = true;
+            assignedBoothForPopup = null;
+            errorMessage = null;
             pendingRecords = await pollingStationClient.GetRecordsByStatus(UserOnlineService.CommitteeMember.Id, "Verified");
+            var confirmed  = await pollingStationClient.GetRecordsByStatus(UserOnlineService.CommitteeMember.Id, "Confirmed");
+            if (confirmed != null){
+                if (pendingRecords == null)
+                    pendingRecords = confirmed;
+                else
+                    pendingRecords.AddRange(confirmed);
+            }
+               
+            isLoading = false;
             await InvokeAsync(StateHasChanged);
         }
     }
-
-    
 }

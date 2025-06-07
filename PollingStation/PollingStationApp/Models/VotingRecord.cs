@@ -10,6 +10,8 @@ public class VotingRecord
     public virtual RegisteredVoter? Voter { get; set; }
     public required string VotingStatus { get; set; }
     public string? AssociateCommitteeMemberId { get; set; }
+    public string? Signature { get; set; }
+
     public DateTime? Timestamp { get; set; }
 
 }
