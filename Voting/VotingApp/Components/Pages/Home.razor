@@ -1,7 +1,408 @@
 ﻿@page "/"
+@using BlazorCircuitHandler.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Components.Server.Circuits
+@using Microsoft.AspNetCore.SignalR
+@using Microsoft.AspNetCore.SignalR.Client
+@using VotingApp.Factories
+@using VotingApp.Models
+@using VotingApp.Services
+@using VotingApp.Services.Abstractions
 
-<PageTitle>Home</PageTitle>
+@attribute [StreamRendering]
+@rendermode InteractiveServer
+@inject AuthenticationStateProvider authStateProvider
+@inject IUserOnlineServiceFactory UserOnlineServiceFactory
+@inject CircuitHandlerService CircuitHandlerService
+@inject SignalRService VotingService
+@inject IPollingStationClient PollingStationClient
+@inject IVotingClient votingClient
+@inject NavigationManager NavigationManager
 
-<h1>Hello, world!</h1>
+@initializationError
 
-Welcome to your new app.
+@if (IsLocked || IsUnlocking)
+{
+    <div class="locked-screen text-center @(IsUnlocking ? "unlocking" : "")">
+        <div class="padlock-icon">
+            <span class="polling-station-icon fa-solid fa-lock" style="user-select: none;"></span>
+        </div>
+
+        <h2 style="user-select: none;">Această cabină este blocată</h2>
+        <p style="user-select: none;" >Este necesară intervenția unui membru a comisiei pentru a putea vota.</p>
+
+    </div>
+}
+else
+{
+    <div class="candidate-selection-screen">
+        <h2 class="text-center mb-4" style="user-select: none;">Alegeți candidatul</h2>
+        @if (CandidatesList != null && CandidatesList.Any())
+        {
+            <div class="candidate-grid @(showConfirmationDialog ? "blurred-background" : "")">
+                @foreach (var candidate in CandidatesList)
+                {
+                    <div class="candidate-square" @onclick="() => HandleCandidateSelection(candidate)"
+                    style="background-color: @GetSanitizedColor(candidate.Color); border: 3px solid @GetDarkenedColor(candidate.Color, 0.2);">
+                        <div class="candidate-info">
+                            <h4 class="candidate-name">@candidate.Name</h4>
+                            <p class="candidate-party">@candidate.Party</p>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+        else
+        {
+            <p class="text-center">Nu sunt disponibili candidați pentru afișare.</p>
+        }
+
+        @* --- Confirmation Dialog --- *@
+        @if (showConfirmationDialog && candidatePendingConfirmation != null)
+        {
+            <div class="confirmation-overlay">
+                <div class="confirmation-box">
+                    @if (isSubmittingVote)
+                    {
+                        <div class="text-center">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Se procesează...</span>
+                            </div>
+                            <p class="mt-2">Se înregistrează votul...</p>
+                        </div>
+                    }
+                    else if (voteSubmissionSuccess)
+                    {
+                        <div class="text-center">
+                            <i class="fas fa-check-circle fa-3x text-success mb-2"></i>
+                            <p>Vot înregistrat cu succes!</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <p>Ați ales candidatul: <strong>@candidatePendingConfirmation.Name</strong></p>
+                        <p>Confirmați?</p>
+                        <div class="confirmation-buttons">
+                            <button class="btn btn-success me-2" @onclick="ConfirmVote" disabled="@isSubmittingVote">Da</button>
+                            <button class="btn btn-danger" @onclick="CancelConfirmation" disabled="@isSubmittingVote">Nu</button>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+        @* --- End Confirmation Dialog --- *@
+    </div>
+}
+
+@code {
+    private HubConnection? _hubConnection;
+    private string? _sessionId;
+    private string? _pollingStationId; 
+    private string _assignedCabin = string.Empty;
+    private Booth? booth;
+    private bool _isConnected = false;
+    private string? initializationError;
+    private bool IsLocked = true;
+    private bool IsUnlocking = false;
+    private IUserOnlineService UserOnlineService;
+    private List<Candidate>? CandidatesList { get; set; } = new();
+    private Candidate? candidatePendingConfirmation;
+    private bool showConfirmationDialog = false;
+    private bool isSubmittingVote = false; 
+    private bool voteSubmissionSuccess = false;
+    protected override async Task OnInitializedAsync()
+    {
+        VotingService.OnAppUnlocked += HandleAppUnlockedFromServer;
+        VotingService.OnConnectionStateChanged += UpdateConnectionState;
+        _sessionId = CircuitHandlerService.CircuitId;
+        if (string.IsNullOrEmpty(_sessionId))
+        {
+            Console.WriteLine("Session ID not available immediately in OnInitializedAsync.");
+            return;
+        }
+        var state = await authStateProvider.GetAuthenticationStateAsync();
+        var user = state.User;
+        PollingStationClient.SetUser(user);
+        var oid = user.FindFirst("oid")?.Value;
+
+        if (!string.IsNullOrEmpty(oid))
+        {
+            UserOnlineService = UserOnlineServiceFactory.GetOrCreate(oid);
+            _pollingStationId = UserOnlineService.PollingStation?.Id;
+            Console.WriteLine($"Home using UserOnlineService [{UserOnlineService.InstanceId}]");
+            CandidatesList = await PollingStationClient.GetCandidates();
+        }
+        await ConnectAndRegister();
+    }
+
+    private async Task ConnectAndRegister()
+    {
+        if (string.IsNullOrEmpty(_sessionId))
+        {
+            initializationError = "Circuit/Session ID is not available to connect.";
+            _isConnected = false;
+            StateHasChanged();
+            return;
+        }
+        Console.WriteLine($"Home using UserOnlineService [{UserOnlineService.InstanceId}]");
+        Console.WriteLine("Start waiting");
+        await UserOnlineService.InitializationComplete.Task;
+        _pollingStationId = UserOnlineService.PollingStation?.Id;
+        var state = await authStateProvider.GetAuthenticationStateAsync();
+        var user = state.User;
+        Console.WriteLine("Stop waiting");
+        try
+        {
+            initializationError = null; // Clear previous errors
+            // InitializeAsync will handle connection and initial registration
+            // It should return the assigned cabin or an indicator of success/failure
+            string? cabin = await VotingService.InitializeAndRegisterAsync(_pollingStationId, _sessionId, user);
+
+            if (!string.IsNullOrEmpty(cabin) && !cabin.StartsWith("Error:"))
+            {
+                _assignedCabin = cabin;
+                var cabinNr = Int32.Parse(cabin);
+                booth = await PollingStationClient?.GetBoothById(_pollingStationId, cabinNr);
+                IsLocked = booth?.Status == "locked";
+                //UserOnlineService.Connect(_sessionId, _assignedCabin); 
+                Console.WriteLine($"Component: Registered session {_sessionId}, Polling Station: {_pollingStationId}, Got Cabin: {_assignedCabin}");
+            }
+            else
+            {
+                _assignedCabin = string.Empty; // Or cabin if it contains the error message
+                initializationError = $"Failed to register with SignalR service: {cabin ?? "Unknown error"}";
+                Console.WriteLine(initializationError);
+            }
+        }
+        catch (Exception ex) // Catch exceptions from InitializeAndRegisterAsync
+        {
+            initializationError = $"An error occurred during initialization: {ex.Message}";
+            _assignedCabin = string.Empty;
+            Console.WriteLine($"Component: Initialization error: {ex.Message}");
+        }
+        _isConnected = VotingService.IsConnected; // Update based on service state
+        StateHasChanged(); // Ensure UI updates
+    }
+
+    private void UpdateConnectionState()
+    {
+        _isConnected = VotingService.IsConnected;
+        if (!_isConnected && string.IsNullOrEmpty(initializationError)) // If disconnected not due to initial error
+        {
+            _assignedCabin = string.Empty; // Clear cabin on disconnect
+            // Optionally: display a "disconnected" message or try to reconnect via UI
+        }
+        InvokeAsync(StateHasChanged);
+    }
+
+    private async Task StartConnection()
+    {
+        try
+        {
+            await _hubConnection.StartAsync();
+            _isConnected = true;
+            Console.WriteLine("Connection started");
+            await RegisterMySession();
+
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error starting connection: {ex.Message}");
+            _isConnected = false;
+        }
+    }
+
+    private async Task RegisterMySession()
+    {
+        try
+        {
+            if (string.IsNullOrEmpty(_pollingStationId) && string.IsNullOrEmpty(_assignedCabin) && string.IsNullOrEmpty(_sessionId))
+            {
+                var state = await authStateProvider.GetAuthenticationStateAsync();
+                var user = state.User;
+                await VotingService.InitializeAndRegisterAsync(_pollingStationId, _assignedCabin, user);
+                //UserOnlineService.Connect(_sessionId, _assignedCabin);
+                Console.WriteLine($"Registered session {_sessionId} and got booth number: {_assignedCabin}");
+            }else
+            {
+                Console.WriteLine("Not enough data to register session");
+            }
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error calling RegisterSession: {ex.Message}");
+            _assignedCabin = "Error: " + ex.Message;
+            StateHasChanged();
+        }
+    }
+
+
+    public async ValueTask DisposeAsync()
+    {
+        if (_hubConnection != null)
+        {
+            try
+            {
+                await _hubConnection.StopAsync();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error stopping connection: {ex.Message}");
+            }
+            await _hubConnection.DisposeAsync();
+        }
+    }
+
+    private async void HandleAppUnlockedFromServer(string unlockedPollingStation, string unlockedCabin)
+    {
+        try
+        {// This event is raised when ANY app is unlocked.
+            var cabinNr = Int32.Parse(_assignedCabin);
+            booth = await PollingStationClient?.GetBoothById(_pollingStationId, cabinNr);
+            if (unlockedPollingStation == _pollingStationId && unlockedCabin == booth?.Id.ToString() && booth.Status == "unlocked")
+            {
+                IsUnlocking = true;
+                await InvokeAsync(StateHasChanged);
+
+                await Task.Delay(1000); // let animation play
+                IsLocked = false;
+                IsUnlocking = false;
+                await InvokeAsync(StateHasChanged);
+            }
+        }catch(Exception ex)
+        {
+            Console.WriteLine($"Error handling app unlocked: {ex.Message}");
+
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private void HandleCandidateSelection(Candidate candidate)
+    {
+        candidatePendingConfirmation = candidate;
+        showConfirmationDialog = true;
+        // StateHasChanged(); // Usually not needed if an event handler triggers it, Blazor is smart.
+    }
+
+    private async Task ConfirmVote()
+    {
+        if (candidatePendingConfirmation == null) return;
+
+        isSubmittingVote = true;
+        voteSubmissionSuccess = false; // Reset success state
+        StateHasChanged(); // Show spinner
+
+        bool success = false;
+        try
+        {
+            Console.WriteLine($"VOTE CONFIRMED for: {candidatePendingConfirmation.Name}, ID: {candidatePendingConfirmation.Id}, Party: {candidatePendingConfirmation.Party}");
+            Ballot vote = new Ballot()
+                {
+                    BallotId = Guid.NewGuid(), 
+                    TimestampUtc = DateTime.UtcNow,
+                    CandidateVoted = candidatePendingConfirmation.Id, 
+                    PollingStation = new PollingStationInfo(
+                        Id: UserOnlineService.PollingStation.Id,
+                        Name: UserOnlineService.PollingStation.Name,
+                        Representative: UserOnlineService.CommitteeMember.Id,
+                        Locality: UserOnlineService.PollingStation.Locality,
+                        ATU: UserOnlineService.PollingStation.ATU
+                    )
+                };
+            success = await votingClient.SendVoteAsync(vote); // Capture success status
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error sending vote: {ex.Message}");
+            success = false;
+        }
+
+        isSubmittingVote = false;
+
+        if (success)
+        {
+            voteSubmissionSuccess = true;
+            StateHasChanged(); // Show success checkmark
+
+            await Task.Delay(1500); // Wait for 1.5 seconds to show the checkmark
+
+            // Reset dialog states before navigation or if navigation fails
+            showConfirmationDialog = false;
+            voteSubmissionSuccess = false;
+            candidatePendingConfirmation = null;
+            // IsLocked = false; // Potentially unlock after successful vote if that's the flow
+
+            NavigationManager.NavigateTo(NavigationManager.Uri, forceLoad: true); // Refresh the page
+        }
+        else
+        {
+            // Handle submission failure - perhaps show an error message in the dialog
+            // For now, just closing the dialog on failure, or you could leave it open
+            // with an error.
+            Console.WriteLine("Vote submission failed.");
+            showConfirmationDialog = false; // Or keep it open and show an error message
+            candidatePendingConfirmation = null;
+            StateHasChanged();
+        }
+    }
+
+    private void CancelConfirmation()
+    {
+        if (isSubmittingVote) return; // Don't allow cancel if already submitting
+
+        Console.WriteLine("Vote confirmation cancelled.");
+        showConfirmationDialog = false;
+        candidatePendingConfirmation = null;
+        // Reset other states if needed
+        StateHasChanged();
+    }
+
+
+    private string GetSanitizedColor(string colorInput)
+    {
+        if (string.IsNullOrWhiteSpace(colorInput)) return "#6c757d"; // Default color (grey)
+
+        var lowerColor = colorInput.ToLower();
+        if ((lowerColor.StartsWith("#") && (lowerColor.Length == 4 || lowerColor.Length == 7)))
+        {
+            return lowerColor;
+        }
+        Console.WriteLine($"Warning: Candidate color '{colorInput}' is not a recognized CSS color. Using default.");
+        return "#6c757d";
+    }
+
+    // Helper method to darken a color. This is a simplified version.
+    private string GetDarkenedColor(string baseColor, double amount)
+    {
+        string sanitizedBaseColor = GetSanitizedColor(baseColor);
+
+        if (sanitizedBaseColor.StartsWith("#"))
+        {
+            try
+            {
+                System.Drawing.Color color = System.Drawing.ColorTranslator.FromHtml(sanitizedBaseColor);
+                double r = Math.Max(0, color.R * (1 - amount));
+                double g = Math.Max(0, color.G * (1 - amount));
+                double b = Math.Max(0, color.B * (1 - amount));
+                return $"#{(int)r:X2}{(int)g:X2}{(int)b:X2}";
+            }
+            catch
+            {
+                return "#343a40"; 
+            }
+        }
+        // For named colors, provide a few common darker versions or a default dark color
+        return sanitizedBaseColor switch
+        {
+            "blue" => "darkblue",
+            "red" => "darkred",
+            "green" => "darkgreen",
+            "yellow" => "goldenrod", 
+            _ => "#343a40" 
+        };
+    }
+
+}

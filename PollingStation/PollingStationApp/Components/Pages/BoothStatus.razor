@@ -1,0 +1,90 @@
+﻿@page "/boothStatus"
+@using PollingStationApp.Components.Shared
+@using PollingStationApp.Models
+@using PollingStationApp.Services
+@using PollingStationApp.Services.Abstractions
+@rendermode InteractiveServer
+@inject IUserOnlineService UserOnlineService
+@inject IPollingStationClient PollingStationClient
+@inject SignalRService signalRService
+
+<PageTitle>BoothStatus</PageTitle>
+
+@if (pollingStation != null && pollingStation.Booths != null && pollingStation.Booths.Any())
+{
+    <div class="d-flex flex-wrap justify-content-center booth-container">
+        @foreach (var booth in pollingStation.Booths.OrderBy(b => b.Id))
+        {
+            <BoothCard Booth="booth" OnDeleteSessionClicked="OnDeleteSessionClicked" />
+        }
+    </div>
+}
+else if (isLoading)
+{
+    <p><em>Se încarcă informațiile cabinelor...</em></p>
+}
+else
+{
+    <p><em>Nicio cabină găsită pentru această secție de votare sau secția nu a putut fi încărcată.</em></p>
+}
+
+@code {
+    private int currentCount = 0;
+    private PollingStation? pollingStation;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        if (UserOnlineService == null)
+        {
+            return; // Or handle appropriately
+        }
+        //Console.WriteLine($"BoothStatus using UserOnlineService [{UserOnlineService.InstanceId}]");
+
+        await UserOnlineService.InitializationComplete.Task;
+        signalRService.OnBoothStatusChanged += UpdateBoothStatus;
+
+        await UpdateBoothStatus();
+        Console.WriteLine("OnInitializedAsync: Exiting.");
+        isLoading = false;
+
+    }
+
+    public async Task OnDeleteSessionClicked(Booth booth)
+    {
+        if (UserOnlineService != null && UserOnlineService.PollingStation != null){
+            await PollingStationClient.DeleteBoothSession(UserOnlineService.PollingStation.Id, booth.Id);
+            await UpdateBoothStatus();
+        }
+
+        await InvokeAsync(StateHasChanged);
+    }
+
+    public async Task UpdateBoothStatus()
+    {
+        if (UserOnlineService.PollingStation != null && !string.IsNullOrEmpty(UserOnlineService.PollingStation.Id)) // Adjust to your actual ID property
+        {
+            pollingStation = await PollingStationClient.GetStationById(UserOnlineService.PollingStation.Id);
+            if (pollingStation == null)
+            {
+                Console.WriteLine("OnInitializedAsync: PollingStationClient.GetStationById returned NULL.");
+            }
+            else
+            {
+                Console.WriteLine($"OnInitializedAsync: Fetched polling station: {pollingStation.Name}"); // Assuming a Name property
+            }
+        }
+        else
+        {
+            Console.WriteLine("OnInitializedAsync: Condition to fetch polling station was false.");
+            if (UserOnlineService.PollingStation == null) Console.WriteLine("Reason: UserOnlineService.PollingStation is null.");
+            else Console.WriteLine($"Reason: UserOnlineService.PollingStation.Id is null or empty (Value: '{UserOnlineService.PollingStation.Id}').");
+            pollingStation = null; 
+        }
+        Console.WriteLine("OnInitializedAsync: Exiting.");
+        isLoading = false;
+        await InvokeAsync(StateHasChanged);
+    }
+
+}

@@ -1,0 +1,211 @@
+﻿@using Microsoft.AspNetCore.Authorization
+@using System.ComponentModel.DataAnnotations
+@using System.Globalization
+@using PollingStationApp.Models
+@using PollingStationApp.Services.Abstractions
+@inject IPollingStationClient ApiClient
+
+@page "/results"
+<div class="election-results-container">
+    <h3 class="results-title">Rezultate</h3>
+
+    <div class="filters-container">
+        <div class="filter-group">
+            <label class="filter-label">LOCALITATE</label>
+            <select class="filter-select" @bind="SelectedLocality">
+                <option value="">Toate</option>
+                @foreach (var locality in _distinctLocalities)
+                {
+                    <option value="@locality">@locality</option>
+                }
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label class="filter-label">Unitate Administativ Teritoriala</label>
+            <select class="filter-select" @bind="SelectedATU">
+                <option value="">Toate</option>
+                @foreach (var atu in _distinctATUs)
+                {
+                    <option value="@atu">@atu</option>
+                }
+            </select>
+        </div>
+
+        <div class="filter-group">
+            <label class="filter-label" style="visibility: hidden;">Clear</label>
+            <button class="clear-btn" @onclick="ClearFilters">Șterge Filtrele</button>
+        </div>
+    </div>
+    @if (_isLoading)
+    {
+        <div class="loading-container">
+            <p>Loading results...</p>
+        </div>
+    }
+    else if (!string.IsNullOrEmpty(_errorMessage))
+    {
+        <p class="error-message">@_errorMessage</p>
+    }
+    else if (!_electionPercentages.Any())
+    {
+        <div class="loading-container">
+            <p>No results found for the current selection.</p>
+        </div>
+    }
+    else
+    {
+        <div class="results-list">
+            @foreach (var candidate in _allCandidates.OrderByDescending(c => _electionPercentages.GetValueOrDefault(c.Name, 0)))
+            {
+                var percentage = _electionPercentages.GetValueOrDefault(candidate.Name, 0);
+                var totalVotes = _fetchedVotes.Count(v => v.CandidateVoted == candidate.Id.ToString());
+
+                <div class="candidate-bar">
+                    <div class="bar-progress" style="background-color: @(candidate.Color ?? "#666"); width: @(percentage)%;"></div>
+                    <div class="candidate-info">
+                        <span class="candidate-name">@candidate.Name</span>
+                        <span class="candidate-votes">@totalVotes.ToString("N0") (@percentage.ToString("F2")%)</span>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<Candidate> _allCandidates = new();
+    private List<VoteBallot> _fetchedVotes = new();
+    private Dictionary<string, double> _electionPercentages = new();
+    private List<string> _distinctATUs = new();
+    private List<string> _distinctLocalities = new();
+    private int _totalVotesInSelection = 0;
+    private bool _isLoading = true;
+    private string? _errorMessage;
+
+    // --- Backing fields for the properties ---
+    private string? _selectedATU;
+    private string? _selectedLocality;
+
+    // --- NEW: Properties for data binding ---
+    private string? SelectedATU
+    {
+        get => _selectedATU;
+        set
+        {
+            if (_selectedATU != value)
+            {
+                _selectedATU = value;
+                _ = ApplyFilters(); // The underscore discards the returned Task, effectively "fire and forget"
+            }
+        }
+    }
+
+    private string? SelectedLocality
+    {
+        get => _selectedLocality;
+        set
+        {
+            if (_selectedLocality != value)
+            {
+                _selectedLocality = value;
+                _ = ApplyFilters();
+            }
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _allCandidates = await ApiClient.GetCandidates() ?? new List<Candidate>();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error loading candidates: {ex.Message}";
+        }
+
+        await LoadVoteData();
+    }
+
+    private async Task LoadVoteData()
+    {
+        _isLoading = true;
+        _errorMessage = null;
+        StateHasChanged();
+
+        try
+        {
+            var identifier = new VoteIdentifier(
+                targetCandidateIdentifier: null,
+                ATU: _selectedATU,
+                Locality: _selectedLocality
+            );
+            _fetchedVotes = await ApiClient.GetVotesForCandidateAsync(identifier) ?? new List<VoteBallot>();
+
+            if ((_distinctATUs.Count == 0 || _distinctLocalities.Count == 0) && _fetchedVotes.Any())
+            {
+                var initialIdentifierForAllVotes = new VoteIdentifier(targetCandidateIdentifier: null);
+                var allVotesForDropdowns = await ApiClient.GetVotesForCandidateAsync(initialIdentifierForAllVotes) ?? new List<VoteBallot>();
+                if (allVotesForDropdowns.Any())
+                {
+                    _distinctATUs = allVotesForDropdowns.Select(v => v.PollingStation.ATU).Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().OrderBy(atu => atu).ToList();
+                    _distinctLocalities = allVotesForDropdowns.Select(v => v.PollingStation.Locality).Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().OrderBy(loc => loc).ToList();
+                }
+            }
+
+            CalculatePercentages();
+        }
+        catch (Exception ex)
+        {
+            _errorMessage = $"Error loading election results: {ex.Message}";
+            _fetchedVotes.Clear();
+            _electionPercentages.Clear();
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private void CalculatePercentages()
+    {
+        _electionPercentages.Clear();
+        _totalVotesInSelection = _fetchedVotes.Count;
+
+        if (!_allCandidates.Any() || !_fetchedVotes.Any())
+        {
+            StateHasChanged(); // Ensure UI updates even when there are no results
+            return;
+        }
+
+        var votesByCandidateIdString = _fetchedVotes
+            .GroupBy(v => v.CandidateVoted)
+            .ToDictionary(g => g.Key, g => g.Count());
+
+        if (_totalVotesInSelection == 0) return;
+
+        foreach (var candidate in _allCandidates)
+        {
+            votesByCandidateIdString.TryGetValue(candidate.Id.ToString(), out int candidateVoteCount);
+            double percentage = _totalVotesInSelection > 0 ? ((double)candidateVoteCount / _totalVotesInSelection) * 100 : 0;
+            _electionPercentages[candidate.Name ?? candidate.Id.ToString()] = percentage;
+        }
+    }
+
+    private async Task ApplyFilters()
+    {
+        await LoadVoteData();
+        StateHasChanged(); // Ensure the UI re-renders after filtering
+    }
+
+    private async Task ClearFilters()
+    {
+        // Set the backing fields directly to avoid re-triggering ApplyFilters in the setters
+        _selectedATU = null;
+        _selectedLocality = null;
+        await LoadVoteData();
+        StateHasChanged();
+    }
+
+}

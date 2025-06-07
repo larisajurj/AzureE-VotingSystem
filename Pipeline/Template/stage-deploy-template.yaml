@@ -20,7 +20,7 @@ parameters:
   - name: deploy_PollingStationApp
     type: boolean
     default: false
-  - name: deploy_PollingStationFn
+  - name: deploy_PollingStationAPI
     type: boolean
     default: false
   - name: deploy_VotingWebApp
@@ -104,21 +104,21 @@ jobs:
           appName: 'POLLING-STATION-PORTAL'
           package: '$(Pipeline.Workspace)/PollingStationApp/PollingStationApp.zip'
           
-    # Deploy Polling Station Function
-    - ${{ if eq(parameters.deploy_PollingStationFn, true) }}:
+    # Deploy Polling Station Api
+    - ${{ if eq(parameters.deploy_PollingStationAPI, true) }}:
         - task: DownloadPipelineArtifact@2
-          displayName: "Download PollingStationFn Artifact"
+          displayName: "Download PollingStationAPI Artifact"
           inputs:
-            artifactName: 'PollingStationFn'
-            targetPath: '$(Pipeline.Workspace)/PollingStationFn'
-    - ${{ if eq(parameters.deploy_VotingFn, true) }}:
-        - task: AzureFunctionApp@2
-          displayName: "Deploy PollingStationFn to Azure Function App"
+            artifactName: 'PollingStationAPI'
+            targetPath: '$(Pipeline.Workspace)/PollingStationAPI'
+    - ${{ if eq(parameters.deploy_PollingStationAPI, true) }}:
+        - task: AzureWebApp@1
+          displayName: "Deploy PollingStationAPI to Azure Web App"
           inputs:
             azureSubscription: ${{ parameters.azureConnection }}
             appType: functionAppLinux
-            appName: 'POLLING-STATION-FN'
-            package: '$(Pipeline.Workspace)/PollingStationFn/PollingStationFn.zip'
+            appName: 'POLLING-STATION-API'
+            package: '$(Pipeline.Workspace)/PollingStationAPI/PollingStationAPI.zip'
             
     # Deploy Voting Function
     - ${{ if eq(parameters.deploy_VotingFn, true) }}:          

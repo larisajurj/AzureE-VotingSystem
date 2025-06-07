@@ -1,0 +1,129 @@
+﻿@using PollingStationApp.Models
+
+<div class="card booth-item-card shadow-sm h-100">
+    <img src="@GetBoothImageUrl()" class="card-img-top booth-status-image" alt="Booth Status: @Booth.Status">
+    <div class="card-body text-center d-flex flex-column">
+        <h6 class="card-title mb-2">Cabina nr @Booth.Id</h6>
+        <div class="card-text small mb-auto">
+            Status: <strong class="@(Booth.Status?.ToLower() == "unlocked" ? "text-success" : "text-danger")">
+                @(Booth?.SessionId == null ? "Neînregistrată" : Booth.Status?.ToLower() == "unlocked" ? "Deschisă" : "Închisă")
+            </strong>
+            <br>
+            @if (!string.IsNullOrEmpty(Booth.SessionId))
+            {
+                <span class="text-muted">Sesiune: @Booth.SessionId</span>
+            }
+            else
+            {
+                <span class="text-muted">Sesiune: Liberă</span>
+            }
+        </div>
+
+        <div class="mt-3">
+            @if (!string.IsNullOrEmpty(Booth.SessionId))
+            {
+                <button class="btn btn-danger" @onclick="RequestDeleteConfirmation" title="Șterge sesiunea asociată">
+                    <i class="fas fa-trash-alt"></i> Șterge Sesiunea
+                </button>
+            }
+            else
+            {
+                <button class="btn btn-secondary" disabled title="Nicio sesiune de șters" style="opacity: 0;">
+                    <i class="fas fa-trash-alt"></i> Nicio Sesiune
+                </button>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- Confirmation Dialog -->
+<ConfirmationDialog IsVisible="showConfirmDialog"
+               Title="Confirmare Ștergere Sesiune"
+               OnCancel="CancelDelete"
+               PreventCloseOnOverlayClick="isDeleting">
+    <ChildContent>
+        @if (isDeleting)
+        {
+            <div class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Se șterge...</span>
+                </div>
+                <p class="mt-2">Se șterge sesiunea...</p>
+            </div>
+        }
+        else
+        {
+            <p>@($"Sunteți sigur că doriți să ștergeți sesiunea pentru cabina nr {Booth.Id}?")</p>
+        }
+    </ChildContent>
+    <FooterContent>
+        <button class="btn btn-secondary" @onclick="CancelDelete" disabled="@isDeleting">Anulează</button>
+        <button class="btn btn-danger" @onclick="ConfirmDelete" disabled="@isDeleting">
+            @if(isDeleting)
+            {
+                <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+            }
+            Da, Șterge
+        </button>
+    </FooterContent>
+</ConfirmationDialog>
+
+
+@code {
+    [Parameter]
+    public Booth Booth { get; set; }
+
+    [Parameter]
+    public EventCallback<Booth> OnDeleteSessionClicked { get; set; }
+
+    private bool showConfirmDialog = false;
+    private bool isDeleting = false;
+
+    private void RequestDeleteConfirmation()
+    {
+        showConfirmDialog = true;
+    }
+
+    private void CancelDelete()
+    {
+        if (!isDeleting)
+        {
+            showConfirmDialog = false;
+        }
+    }
+
+    private async Task ConfirmDelete()
+    {
+        isDeleting = true;
+
+        if (Booth != null && OnDeleteSessionClicked.HasDelegate)
+        {
+            await OnDeleteSessionClicked.InvokeAsync(Booth);
+        }
+        else if (Booth == null)
+        {
+            Console.WriteLine("BoothCard: ConfirmDelete called but Booth is null.");
+        }
+        else
+        {
+            Console.WriteLine("BoothCard: ConfirmDelete called but OnDeleteSessionClicked delegate is not set.");
+        }
+
+        isDeleting = false;
+        showConfirmDialog = false; // Hide the dialog after the action is performed
+    }
+
+    private string GetBoothImageUrl()
+    {
+        if (Booth?.SessionId == null)
+            return "/assets/unregistered-booth.png";
+        if (Booth?.Status?.ToLower() == "locked")
+        {
+            return "/assets/closed-booth2.png";
+        }
+        else
+        {
+            return "/assets/open-booth2.png";
+        }
+    }
+}

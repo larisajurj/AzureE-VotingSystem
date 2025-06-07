@@ -1,0 +1,115 @@
+﻿@* This component provides a custom, centered modal overlay for confirmations. *@
+@if (IsVisible)
+{
+    <div class="confirmation-overlay" @onclick="HandleOverlayClick">
+        <div class="confirmation-box" @onclick:stopPropagation>
+
+            @* Title Section *@
+            @if (!string.IsNullOrWhiteSpace(Title))
+            {
+                <div class="confirmation-title">
+                    <h5>@Title</h5>
+                </div>
+            }
+
+            @* Content Section - Renders content from the parent *@
+            <div class="confirmation-content">
+                @ChildContent
+            </div>
+
+            @* Footer/Button Section *@
+            <div class="confirmation-buttons">
+                @if (FooterContent != null)
+                {
+                    @FooterContent
+                }
+                else
+                {
+                    <button class="btn btn-secondary" @onclick="Cancel">@CancelText</button>
+                    <button class="btn btn-primary" @onclick="Confirm">@ConfirmText</button>
+                }
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    /// <summary>
+    /// Gets or sets a value indicating whether the dialog is visible.
+    /// </summary>
+    [Parameter]
+    public bool IsVisible { get; set; }
+
+    /// <summary>
+    /// The title of the confirmation dialog.
+    /// </summary>
+    [Parameter]
+    public string? Title { get; set; }
+
+    /// <summary>
+    /// The content to be displayed within the dialog.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// Optional custom content for the footer, typically for buttons.
+    /// If not provided, default Confirm/Cancel buttons will be shown.
+    /// </summary>
+    [Parameter]
+    public RenderFragment? FooterContent { get; set; }
+
+    /// <summary>
+    /// The text for the default confirmation button.
+    /// </summary>
+    [Parameter]
+    public string ConfirmText { get; set; } = "Confirm";
+
+    /// <summary>
+    /// The text for the default cancellation button.
+    /// </summary>
+    [Parameter]
+    public string CancelText { get; set; } = "Cancel";
+
+    /// <summary>
+    /// Callback for when the user clicks the confirm button.
+    /// </summary>
+    [Parameter]
+    public EventCallback OnConfirm { get; set; }
+
+    /// <summary>
+    /// Callback for when the user clicks the cancel button or the overlay.
+    /// </summary>
+    [Parameter]
+    public EventCallback OnCancel { get; set; }
+
+    /// <summary>
+    /// If true, clicking the overlay will not close the dialog.
+    /// </summary>
+    [Parameter]
+    public bool PreventCloseOnOverlayClick { get; set; }
+
+    private async Task Confirm()
+    {
+        if (OnConfirm.HasDelegate)
+        {
+            await OnConfirm.InvokeAsync();
+        }
+    }
+
+    private async Task Cancel()
+    {
+        if (OnCancel.HasDelegate)
+        {
+            await OnCancel.InvokeAsync();
+        }
+    }
+
+    private async Task HandleOverlayClick()
+    {
+        if (!PreventCloseOnOverlayClick)
+        {
+            await Cancel();
+        }
+    }
+}

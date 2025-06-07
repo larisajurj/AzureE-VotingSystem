@@ -15,9 +15,8 @@ terraform {
       version = "3.3.2"
     }
   }
-
+  required_version = ">= 1.1.0"
   backend "azurerm" {}
-  required_version = "1.11.3"
 }
 
 provider "azurerm" {
@@ -38,18 +37,18 @@ resource "azurerm_resource_group" "eVoting_rg" {
 }
 
 # Create the Function Apps
-module "function" {
-  source = "./modules/function"
-  depends_on = [
-    azurerm_resource_group.eVoting_rg,
-  ]
-  func_asp_name           = var.func_asp_name
-  func_st_name            = var.func_st_name
-  resource_group          = var.eVoting_rg_name
-  voting_func_name        = var.voting_func_name
-  polling_station_fn_name = var.polling_station_fn_name
-}
-
+#module "function" {
+#  source = "./modules/function"
+#  depends_on = [
+#    azurerm_resource_group.eVoting_rg,
+#  ]
+#  func_asp_name           = var.func_asp_name
+#  func_st_name            = var.func_st_name
+#  resource_group          = var.eVoting_rg_name
+#  voting_func_name        = var.voting_func_name
+#  polling_station_fn_name = var.polling_station_fn_name
+#}
+#
 #Create the Web Apps
 module "web-app" {
   source = "./modules/web-app"
@@ -61,7 +60,17 @@ module "web-app" {
   electoral_register_app_name = var.electoral_register_app_name
   resource_group              = var.eVoting_rg_name
   polling_station_app_name    = var.polling_station_app_name
+  polling_station_api_name    = var.polling_station_api_name
   voting_app_name             = var.voting_app_name
+}
+
+module "database" {
+  source = "./modules/cosmos-db"
+  depends_on = [
+    azurerm_resource_group.eVoting_rg,
+  ]
+  cosmos_acc_name = var.cosmos_acc_name
+  resource_group  = var.eVoting_rg_name
 }
 
 module "storage-account" {

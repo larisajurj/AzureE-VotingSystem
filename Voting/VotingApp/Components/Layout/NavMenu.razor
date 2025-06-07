@@ -1,30 +1,82 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using VotingApp.Factories
+@using VotingApp.Services
+@using VotingApp.Services.Abstractions
+@inject AuthenticationStateProvider authStateProvider
+@inject IUserOnlineServiceFactory UserOnlineServiceFactory
+@inject IPollingStationClient PollingStationClient
+@inject SignalRService SignalRService
+
+@attribute [StreamRendering]
+@rendermode InteractiveServer
+
+<div class="top-row ps-3 navbar">
     <div class="container-fluid">
-        <a class="navbar-brand" href="">VotingApp</a>
+        <a class="navbar-brand" href="">
+            <i class="polling-station-icon fa-solid fa-person-booth"></i>
+            <span class="title">Buletinul de Vot</span>
+        </a>
+        <button title="Navigation menu" class="navbar-toggler" @onclick="ToggleNavMenu">
+            <span class="navbar-toggler-icon"></span>
+        </button>
     </div>
 </div>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
-
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
+<div class="@NavMenuCssClass nav-scrollable" @onclick="ToggleNavMenu">
     <nav class="flex-column">
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+                <i class="polling-station-icon navmenu-icon fa-solid fa-house"></i>
+                <span class="title">Cabina nr. @(SignalRService._assignedCabin ?? "Neînregistrat")</span>
             </NavLink>
         </div>
-
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="counter">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Counter
-            </NavLink>
+            <span class="text-muted">Cum se folosește aplicația?</span>
         </div>
-
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="weather">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Weather
+                <i class="polling-station-icon navmenu-icon fa-solid fa-cloud"></i>
+                <span class="title">Tutorial</span>
             </NavLink>
         </div>
     </nav>
 </div>
 
+@code {
+    private bool collapseNavMenu = true;
+    private IUserOnlineService UserOnlineService;
+    private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        SignalRService.OnConnectionStateChanged += StateHasChanged;
+        var state = await authStateProvider.GetAuthenticationStateAsync();
+        var user = state.User;
+        PollingStationClient.SetUser(user);
+        var oid = user.FindFirst("oid")?.Value;
+
+        if (!string.IsNullOrEmpty(oid))
+        {
+            UserOnlineService = UserOnlineServiceFactory.GetOrCreate(oid);
+            Console.WriteLine($"Navmenu using UserOnlineService [{UserOnlineService.InstanceId}]");
+        }
+        UserOnlineService.OnChange += OnUserOnlineServiceChanged;
+        //Console.WriteLine("NavMenu subscribed to OnChange");
+    }
+
+    public void Dispose()
+    {
+        UserOnlineService.OnChange -= OnUserOnlineServiceChanged;
+        //Console.WriteLine("NavMenu unsubscribed from OnChange");
+    }
+
+    private void ToggleNavMenu()
+    {
+        collapseNavMenu = !collapseNavMenu;
+    }
+
+    private async void OnUserOnlineServiceChanged()
+    {
+        await InvokeAsync(StateHasChanged);
+    }
+}

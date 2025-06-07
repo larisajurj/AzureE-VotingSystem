@@ -19,9 +19,8 @@ electoral_register_app_name = "REGISTRUL-ELECTORAL-API"
 polling_station_app_name      = "POLLING-STATION-PORTAL"
 polling_station_app_snet_name = "POLLING-STATION-PORTAL-SNET"
 
-#Polling Station Fn
-polling_station_fn_name        = "POLLING-STATION-FN"
-polling_station_func_snet_name = "POLLING-STATION-FN-SNET"
+#Polling Station API
+polling_station_api_name = "POLLING-STATION-API"
 
 #Polling Station Db
 polling_station_db_name = "POLLING-STATION-DB"
@@ -37,3 +36,6 @@ voting_func_snet_name = "VOTING-FN-SNET"
 #Voting Storage Account
 voting_st_name      = "votingst"
 voting_st_snet_name = "VOTING-ST-SNET"
+
+#Database
+cosmos_acc_name = "voting-cosmosdb"

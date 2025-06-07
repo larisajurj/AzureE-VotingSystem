@@ -1,4 +1,5 @@
 using Service;
+using Service.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -9,7 +10,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddServices();
-
+builder.Services.AddScoped<SignalRService>();
 var app = builder.Build();
 
 app.UseSwagger();

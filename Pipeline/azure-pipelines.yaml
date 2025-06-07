@@ -19,8 +19,8 @@ parameters:
     displayName: "🛠️ Deploy PollingStation Web App"
     type: boolean
     default: false
-  - name: deploy_PollingStationFn
-    displayName: "🛠️ Deploy PollingStation Function"
+  - name: deploy_PollingStationAPI
+    displayName: "🛠️ Deploy PollingStation API"
     type: boolean
     default: false
   - name: deploy_VotingWebApp
@@ -36,7 +36,7 @@ variables:
   deployInfra: ${{ parameters.deployInfra }}
   deploy_RegistrulElectoralAPI: ${{ parameters.deploy_RegistrulElectoralAPI }}
   deploy_PollingStationApp: ${{ parameters.deploy_PollingStationApp }}
-  deploy_PollingStationFn: ${{ parameters.deploy_PollingStationFn }}
+  deploy_PollingStationAPI: ${{ parameters.deploy_PollingStationAPI }}
   deploy_VotingWebApp: ${{ parameters.deploy_VotingWebApp }}
   deploy_VotingFn: ${{ parameters.deploy_VotingFn }}
 
@@ -67,15 +67,15 @@ stages:
             projects: 'PollingStation/PollingStationApp/PollingStationApp.csproj'
             arguments: '--configuration Release --output $(Build.ArtifactStagingDirectory)/PollingStationApp_Output'
             zipAfterPublish: true
-        # Publish the PollingStationFn               
+        # Publish the PollingStationAPI               
         - task: DotNetCoreCLI@2
-          displayName: '.NET: Publish PollingStationFn'
-          condition: eq(variables['deploy_PollingStationFn'], true)
+          displayName: '.NET: Publish PollingStationAPI'
+          condition: eq(variables['deploy_PollingStationAPI'], true)
           inputs:
             command: publish
             publishWebProjects: false
-            projects: 'PollingStation/PollingStationFn/PollingStationFn.csproj'
-            arguments: '--configuration Release --output $(Build.ArtifactStagingDirectory)/PollingStationFn_Output'
+            projects: 'PollingStation/PollingStationAPI/PollingStationAPI.csproj'
+            arguments: '--configuration Release --output $(Build.ArtifactStagingDirectory)/PollingStationAPI_Output'
             zipAfterPublish: true
         # Publish the RegistrulElectoralAPI               
         - task: DotNetCoreCLI@2
@@ -116,13 +116,13 @@ stages:
             PathtoPublish: '$(Build.ArtifactStagingDirectory)/PollingStationApp_Output'
             ArtifactName: 'PollingStationApp'
             publishLocation: 'Container'
-        # Publish the PollingStationFn Artifact
+        # Publish the PollingStationApi Artifact
         - task: PublishBuildArtifacts@1
-          displayName: 'Publish Artifact: PollingStationFn'
-          condition: eq(variables['deploy_PollingStationFn'], true)
+          displayName: 'Publish Artifact: PollingStationAPI'
+          condition: eq(variables['deploy_PollingStationAPI'], true)
           inputs:
-            PathtoPublish: '$(Build.ArtifactStagingDirectory)/PollingStationFn_Output'
-            ArtifactName: 'PollingStationFn'
+            PathtoPublish: '$(Build.ArtifactStagingDirectory)/PollingStationAPI_Output'
+            ArtifactName: 'PollingStationAPI'
             publishLocation: 'Container'
         # Publish the RegistrulElectoralAPI Artifact
         - task: PublishBuildArtifacts@1
@@ -163,6 +163,6 @@ stages:
           deployInfra: ${{ parameters.deployInfra }}
           deploy_RegistrulElectoralAPI: ${{ parameters.deploy_RegistrulElectoralAPI }}
           deploy_PollingStationApp: ${{ parameters.deploy_PollingStationApp }}
-          deploy_PollingStationFn: ${{ parameters.deploy_PollingStationFn }}
+          deploy_PollingStationAPI: ${{ parameters.deploy_PollingStationAPI }}
           deploy_VotingWebApp: ${{ parameters.deploy_VotingWebApp }}
           deploy_VotingFn: ${{ parameters.deploy_VotingFn }}

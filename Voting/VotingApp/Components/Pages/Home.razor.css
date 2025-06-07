@@ -1,0 +1,121 @@
+﻿body {
+}
+.padlock-icon {
+    font-size: 100px;
+    color: var(--selected-background-color);
+}
+
+.locked-screen {
+    transition: opacity 0.5s ease;
+    opacity: 1;
+}
+
+    .locked-screen.unlocking {
+        animation: unlockFadeOut 1s forwards;
+    }
+
+@keyframes unlockFadeOut {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+
+    50% {
+        transform: scale(1.1) rotate(5deg);
+        opacity: 0.5;
+    }
+
+    100% {
+        transform: scale(0.8) rotate(-5deg);
+        opacity: 0;
+    }
+}
+
+.candidate-selection-screen {
+    padding: 20px;
+    position: relative; /* For positioning the overlay */
+}
+
+.candidate-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 20px;
+    justify-content: center;
+    transition: filter 0.3s ease-in-out; /* Smooth blur transition */
+}
+
+    .candidate-grid.blurred-background {
+        filter: blur(5px); /* Blur the background when dialog is shown */
+        pointer-events: none; /* Prevent interaction with blurred background */
+    }
+
+.candidate-square {
+    color: white;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    min-height: 180px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    overflow: hidden;
+}
+
+    .candidate-square:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+    }
+
+.candidate-info {
+}
+
+.candidate-name {
+    font-size: 1.25rem;
+    font-weight: bold;
+    margin-bottom: 0.5rem;
+    word-wrap: break-word;
+}
+
+.candidate-party {
+    font-size: 0.9rem;
+    word-wrap: break-word;
+}
+
+/* Confirmation Dialog Styles */
+.confirmation-overlay {
+    position: fixed; /* Or absolute if parent has position:relative and you want it contained */
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6); /* Semi-transparent background */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000; /* Ensure it's on top */
+}
+
+.confirmation-box {
+    background-color: white;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+    text-align: center;
+    color: #333; /* Darker text color for readability on white */
+    min-width: 300px; /* Minimum width for the box */
+    max-width: 90%; /* Maximum width */
+}
+
+    .confirmation-box p {
+        margin-bottom: 15px;
+        font-size: 1.1rem;
+    }
+
+.confirmation-buttons button {
+    padding: 10px 20px;
+    font-size: 1rem;
+}

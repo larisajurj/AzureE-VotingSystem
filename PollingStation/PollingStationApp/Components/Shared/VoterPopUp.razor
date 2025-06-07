@@ -1,0 +1,183 @@
+﻿@attribute [StreamRendering]
+@rendermode InteractiveServer
+@using Blazorise
+@using Blazorise.Components
+@using Blazorise.SignaturePad
+@using PollingStationApp.Models
+@using System.Text.Json.Serialization
+@using PollingStationApp.Services.Abstractions
+@inject IPollingStationClient PollingStationClient
+
+@if (!string.IsNullOrEmpty(AssignedBoothNumber))
+{
+    <Container>
+        <Row class="justify-content-center">
+            <Column md="8" lg="7">
+                <Card class="shadow-sm rounded text-center">
+                    <CardBody>
+                        <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
+                        <Heading Size="HeadingSize.Is4">Vot Permis!</Heading>
+                        <Paragraph class="lead mt-3">
+                            Vă rugăm direcționați alegătorul către <strong>cabina nr. @AssignedBoothNumber</strong>.
+                        </Paragraph>
+                        <Button Color="Color.Primary" class="mt-3" @onclick="HandleCloseClicked">
+                            <Icon Name="IconName.TimesCircle" /> Închide
+                        </Button>
+                    </CardBody>
+                </Card>
+            </Column>
+        </Row>
+    </Container>
+}
+else
+{
+    <Container>
+        <Row class="justify-content-center">
+            <Column md="8" lg="7">
+                <Card class="shadow-sm rounded">
+                    <CardHeader class="voter-card-header position-relative">
+                        <Heading Size="HeadingSize.Is6" Muted="true" class="voter-card-main-title">Detaliile alegătorului</Heading>
+                        <Heading Size="HeadingSize.Is4" class="voter-card-name">
+                            @Voter?.FirstName @Voter?.LastName
+                        </Heading>
+                        <CloseButton Clicked="HandleCloseClicked" class="position-absolute top-0 end-0 m-2" />
+                    </CardHeader>
+                    <CardBody>
+                        <Row>
+                            <Column md="4" class="voter-details-column">
+                                <Heading Size="HeadingSize.Is6" class="voter-data-heading">Date personale:</Heading>
+                                @if (Voter != null)
+                                {
+                                    <Paragraph><strong>Data nașterii:</strong> @Voter.DateOfBirth.ToShortDateString()</Paragraph>
+                                    <Paragraph><strong>Locul nașterii:</strong> @Voter.PlaceOfBirth</Paragraph>
+                                    <Paragraph><strong>Gen:</strong> @Voter.Gender</Paragraph>
+                                }
+                            </Column>
+                            <Column md="8" class="signature-column">
+                                @if(Signature == null){
+                                    <Heading Size="HeadingSize.Is6" class="signature-section-heading">Semnați mai jos:</Heading>
+                                    <SignaturePad @ref="signaturePadRef"
+                                    @bind-Value="data"
+                                    ImageType="SignaturePadImageType.Svg"
+                                    class="custom-signature-pad" 
+                                    BackgroundColor="white"
+                                    MinDistance="10"
+                                    CanvasWidth="800"
+                                    CanvasHeight="300"
+                                    Shadow="Shadow.Small" />
+
+                                    <Row class="justify-content-center signature-buttons-row"> 
+                                        <Column ColumnSize="ColumnSize.IsAuto">
+                                            <ButtonGroup>
+                                                <Button Color="Color.Primary" Clicked="@OnUndoClicked" Disabled="showAllowVotingButton">
+                                                    <Icon Name="IconName.Undo" /> Anulează ultima linie
+                                                </Button>
+                                                <Button Color="Color.Success" Clicked="@OnSendClicked" Disabled="showAllowVotingButton">
+                                                    <Icon Name="IconName.Save" /> Trimite semnătura
+                                                </Button>
+                                            </ButtonGroup>
+                                        </Column>
+                                    </Row>
+                                }
+                                else
+                                {
+                                    <div class="custom-signature-pad shadow-sm" style="background-color: white;">
+                                        <Image Source="@Signature" style="background-color: white !important; width: 800px; height: 300px" />
+                                    </div>
+
+                                }
+                            </Column>
+                        </Row>
+                        @if (showAllowVotingButton)
+                        {
+                            <Row class="mt-4 justify-content-center">
+                                <Column ColumnSize="ColumnSize.IsAuto">
+                                    <Button Size="Size.Large" Color="Color.Warning" Clicked="HandleAllowVotingClick">
+                                        <Icon Name="IconName.CheckSquare" /> Permite votarea
+                                    </Button>
+                                </Column>
+                            </Row>
+                        }
+                    </CardBody>
+                </Card>
+            </Column>
+        </Row>
+    </Container>
+}
+
+@code {
+    [Parameter] public RegisteredVoter Voter { get; set; }
+    [Parameter] public EventCallback<RegisteredVoter> OnAllowVotingClicked { get; set; }
+    [Parameter] public EventCallback OnClosePopUp { get; set; }
+    [Parameter] public string? AssignedBoothNumber { get; set; } // New parameter
+    [Parameter] public string? Signature {get; set;}
+    private SignaturePad signaturePadRef;
+    public byte[]? data { get; set; }
+    private bool showAllowVotingButton = false;
+    private string? ExceptionMessage;
+    private string Image64 => data != null ? SignaturePad.GetDataUrl(data, SignaturePadImageType.Svg) : string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        showAllowVotingButton = (Signature != null);
+        data = null;
+        signaturePadRef?.Clear();
+
+    }
+
+    private Guid? _previousVoterId;
+
+    private async Task OnUndoClicked()
+    {
+        if (signaturePadRef != null)
+        {
+            await signaturePadRef.Undo();
+        }
+    }
+
+    private void OnSendClicked()
+    {
+        if (Voter == null || Voter.Id == Guid.Empty)
+        {
+            Console.WriteLine("Voter data is not available. Cannot send signature.");
+            return;
+        }
+
+        if (data != null && data.Length > 0)
+        {
+            Console.WriteLine($"Semnătură capturată, {data.Length} bytes, pentru alegătorul: {Voter.Id}");
+            try
+            {
+                ExceptionMessage = null;
+                PollingStationClient.SaveSignature(Voter.Id, Image64);
+                showAllowVotingButton = true;
+
+            }catch(Exception e)
+            {
+                ExceptionMessage = "Nu s-a putut salva semnatura";
+            }
+        }
+        else
+        {
+            Console.WriteLine("Nicio semnătură de trimis.");
+            ExceptionMessage = "Nicio semnătură de trimis.";
+
+        }
+    }
+
+    private async Task HandleAllowVotingClick()
+    {
+        if (OnAllowVotingClicked.HasDelegate)
+        {
+            await OnAllowVotingClicked.InvokeAsync(Voter);
+        }
+    }
+
+    private async Task HandleCloseClicked()
+    {
+        if (OnClosePopUp.HasDelegate)
+        {
+            await OnClosePopUp.InvokeAsync();
+        }
+    }
+}

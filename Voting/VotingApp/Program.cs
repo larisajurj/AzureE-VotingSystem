@@ -1,27 +1,64 @@
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using System.IdentityModel.Tokens.Jwt;
+using Microsoft.Identity.Web;
+using Microsoft.Identity.Web.UI;
 using VotingApp.Components;
-
+using VotingApp.Services;
+using VotingApp.Services.Abstractions;
 var builder = WebApplication.CreateBuilder(args);
 
+JwtSecurityTokenHandler.DefaultMapInboundClaims = false;
+builder.Configuration
+    .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
+    .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
+    .AddJsonFile($"appsettings.Development.json", optional: true, reloadOnChange: true)
+    .AddEnvironmentVariables();
+
+builder.Services
+    .AddAuthentication(OpenIdConnectDefaults.AuthenticationScheme)
+    .AddMicrosoftIdentityWebApp(options =>
+    {
+        builder.Configuration.Bind("AzureAd", options);
+        options.TokenValidationParameters.RoleClaimType = "roles";
+    })
+    .EnableTokenAcquisitionToCallDownstreamApi()
+    .AddInMemoryTokenCaches();
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddServerSideBlazor()
+    .AddMicrosoftIdentityConsentHandler();
 // Add services to the container.
 builder.Services.AddRazorComponents()
-	.AddInteractiveServerComponents();
+    .AddInteractiveServerComponents();
+builder.Services.AddControllersWithViews().AddMicrosoftIdentityUI();
+builder.Services.AddRazorPages();
+builder.Services.AddHttpClient();
+builder.Services.AddSignalRSessionServices(builder.Configuration);
+builder.Services.AddHttpClients(builder.Configuration);
+builder.Services.AddScoped<ITokenProvider, TokenProvider>();
 
 var app = builder.Build();
+
 
 // Configure the HTTP request pipeline.
 if (!app.Environment.IsDevelopment())
 {
-	app.UseExceptionHandler("/Error", createScopeForErrors: true);
-	// The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
-	app.UseHsts();
+    app.UseExceptionHandler("/Error", createScopeForErrors: true);
+    app.UseHsts();
 }
 
 app.UseHttpsRedirection();
+app.UseStaticFiles(); // Required for any static assets
 
-app.UseStaticFiles();
+app.UseAuthentication();
+app.UseAuthorization();
+
 app.UseAntiforgery();
 
+app.MapStaticAssets();
+app.MapRazorPages();       // Required for identity UI
+app.MapControllers();      // Required for /MicrosoftIdentity/Account/SignIn
+
 app.MapRazorComponents<App>()
-	.AddInteractiveServerRenderMode();
+    .AddInteractiveServerRenderMode();
 
 app.Run();

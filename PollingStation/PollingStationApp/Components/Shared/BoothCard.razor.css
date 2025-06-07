@@ -1,0 +1,43 @@
+﻿.booth-container .booth-item-card {
+    width: 200px;
+    margin: 1rem; /* Adjusted for a cleaner look */
+    border-radius: 0.5rem;
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+    background-color: var(--ligh-medium-color);
+    display: flex; /* Make the card a flex container */
+    flex-direction: column; /* Stack children vertically */
+}
+
+.booth-item-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,.15) !important;
+}
+
+.booth-status-image {
+    object-fit: cover;
+    border-top-left-radius: 0.5rem;
+    border-top-right-radius: 0.5rem;
+}
+
+.card-body {
+    padding: 0.75rem;
+    display: flex; /* Make the body a flex container */
+    flex-direction: column; /* Stack its children vertically */
+    flex-grow: 0; /* Allow the body to grow and fill available space */
+    height: 13rem;
+    border-radius: 0.5rem;
+}
+
+.card-title {
+    font-weight: bold;
+}
+
+/* This new rule targets the placeholder button */
+.booth-item-card .btn-secondary[disabled] {
+    visibility: hidden; /* Hide the button but keep its space */
+}
+
+/* This targets the div that grows, pushing the button to the bottom */
+.card-body .mb-auto {
+    flex-grow: 1;
+}
