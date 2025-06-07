@@ -20,7 +20,7 @@ variable "func_st_name" {
   type = string
 }
 
-variable "func_st_snet_name" {
+variable "cosmos_db_snet_name" {
   type = string
 }
 
@@ -39,7 +39,7 @@ variable "polling_station_app_name" {
   type = string
 }
 
-variable "polling_station_app_snet_name" {
+variable "portal_apps_snet_name" {
   type = string
 }
 
@@ -48,18 +48,12 @@ variable "polling_station_api_name" {
   type = string
 }
 
-
-#Polling Station Db
-variable "polling_station_db_name" {
+variable "polling_station_api_snet_name" {
   type = string
 }
 
 #Voting App
 variable "voting_app_name" {
-  type = string
-}
-
-variable "voting_app_snet_name" {
   type = string
 }
 
@@ -69,6 +63,10 @@ variable "voting_func_name" {
 }
 
 variable "voting_func_snet_name" {
+  type = string
+}
+
+variable "voting_func_pep_name" {
   type = string
 }
 

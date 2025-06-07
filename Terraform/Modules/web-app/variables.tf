@@ -21,8 +21,16 @@ variable "polling_station_app_name" {
   type = string
 }
 
+variable "portal_apps_snet_id" {
+  type = string
+}
+
 #Polling Station Api
 variable "polling_station_api_name" {
+  type = string
+}
+
+variable "polling_station_api_snet_id" {
   type = string
 }
 

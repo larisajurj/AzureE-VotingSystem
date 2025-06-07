@@ -41,11 +41,15 @@ module "function" {
   source = "./modules/function"
   depends_on = [
     azurerm_resource_group.eVoting_rg,
+    module.vnet
   ]
-  func_asp_name           = var.func_asp_name
-  func_st_name            = var.func_st_name
-  resource_group          = var.eVoting_rg_name
-  voting_func_name        = var.voting_func_name
+  func_asp_name        = var.func_asp_name
+  func_st_name         = var.func_st_name
+  resource_group       = var.eVoting_rg_name
+  voting_func_name     = var.voting_func_name
+  voting_func_snet_id  = module.vnet.voting_func_snet_id
+  voting_func_pep_name = var.voting_func_pep_name
+  websites_dns_id      = module.vnet.websites_dns_id
 }
 
 #Create the Web Apps
@@ -53,6 +57,7 @@ module "web-app" {
   source = "./modules/web-app"
   depends_on = [
     azurerm_resource_group.eVoting_rg,
+    module.vnet
   ]
 
   app_asp_name                = var.app_asp_name
@@ -62,12 +67,15 @@ module "web-app" {
   polling_station_api_name    = var.polling_station_api_name
   voting_app_name             = var.voting_app_name
   voting_func_name            = var.voting_func_name
+  polling_station_api_snet_id = module.vnet.polling_station_api_snet_id
+  portal_apps_snet_id         = module.vnet.portal_apps_snet_id
 }
 
 module "database" {
   source = "./modules/cosmos-db"
   depends_on = [
     azurerm_resource_group.eVoting_rg,
+    module.vnet
   ]
   cosmos_acc_name = var.cosmos_acc_name
   resource_group  = var.eVoting_rg_name
@@ -77,23 +85,27 @@ module "storage-account" {
   source = "./modules/storage-account"
   depends_on = [
     azurerm_resource_group.eVoting_rg,
+    module.vnet,
+    module.web-app,
+    module.function
   ]
-  resource_group = var.eVoting_rg_name
-  votes_st_name  = var.voting_st_name
+  resource_group                   = var.eVoting_rg_name
+  votes_st_name                    = var.voting_st_name
+  polling_station_api_principal_id = module.web-app.polling_station_api_principal_id
+  voting_func_principal_id         = module.function.voting_func_principal_id
 }
 
-#module "vnet" {
-#  source = "./modules/vnet"
-#  depends_on = [
-#    azurerm_resource_group.eVoting_rg,
-#  ]
-#
-#  func_st_snet_name              = var.func_st_snet_name
-#  polling_station_app_snet_name  = var.polling_station_app_snet_name
-#  polling_station_func_snet_name = var.polling_station_func_snet_name
-#  resource_group                 = var.eVoting_rg_name
-#  vnet_name                      = var.vnet_name
-#  voting_app_snet_name           = var.voting_app_snet_name
-#  voting_func_snet_name          = var.voting_func_snet_name
-#  voting_st_snet_name            = var.voting_st_snet_name
-#}
+module "vnet" {
+  source = "./modules/vnet"
+  depends_on = [
+    azurerm_resource_group.eVoting_rg,
+  ]
+
+  cosmos_db_snet_name           = var.cosmos_db_snet_name
+  portal_apps_snet_name         = var.portal_apps_snet_name
+  polling_station_api_snet_name = var.polling_station_api_snet_name
+  resource_group                = var.eVoting_rg_name
+  vnet_name                     = var.vnet_name
+  voting_st_snet_name           = var.voting_st_snet_name
+  voting_func_snet_name         = var.voting_func_snet_name
+}

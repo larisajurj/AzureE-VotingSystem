@@ -20,3 +20,15 @@ variable "func_st_name" {
 variable "voting_func_name" {
   type = string
 }
+
+variable "voting_func_snet_id" {
+  type = string
+}
+
+variable "voting_func_pep_name" {
+  type = string
+}
+
+variable "websites_dns_id" {
+  type = string
+}
