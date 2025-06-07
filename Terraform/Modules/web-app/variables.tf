@@ -30,3 +30,8 @@ variable "polling_station_api_name" {
 variable "voting_app_name" {
   type = string
 }
+
+#Voting Func
+variable "voting_func_name" {
+  type = string
+}

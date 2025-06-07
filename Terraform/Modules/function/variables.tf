@@ -16,11 +16,6 @@ variable "func_st_name" {
   type = string
 }
 
-#Polling Station Function
-variable "polling_station_fn_name" {
-  type = string
-}
-
 #Voting Function
 variable "voting_func_name" {
   type = string
