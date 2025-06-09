@@ -6,6 +6,11 @@ variable "location" {
   default = "westeurope"
 }
 
+#Application Insights
+variable "application_insights_connection" {
+  type = string
+}
+
 #Service Plan 
 variable "func_asp_name" {
   type = string

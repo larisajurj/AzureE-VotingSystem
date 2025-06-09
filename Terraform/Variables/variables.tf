@@ -4,6 +4,10 @@ eVoting_rg_name = "VOTING-RG"
 #Virtual Network
 vnet_name = "VOTING_VNET"
 
+
+#Monitor
+application_insights_name = "VOTING_APPI"
+
 #Functions Service Plan & Storage Account
 func_asp_name = "FUNC-SP"
 func_st_name  = "evotefuncst"

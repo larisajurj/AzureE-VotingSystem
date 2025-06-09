@@ -11,6 +11,11 @@ variable "vnet_name" {
   type = string
 }
 
+#Monitor
+variable "application_insights_name" {
+  type = string
+}
+
 #Functions Service Plan & Storage Account
 variable "func_asp_name" {
   type = string

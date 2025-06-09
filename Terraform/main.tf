@@ -50,6 +50,7 @@ module "function" {
   voting_func_snet_id  = module.vnet.voting_func_snet_id
   voting_func_pep_name = var.voting_func_pep_name
   websites_dns_id      = module.vnet.websites_dns_id
+  application_insights_connection = module.azure-monitor.application_insights_connection
 }
 
 #Create the Web Apps
@@ -61,15 +62,16 @@ module "web-app" {
     module.function
   ]
 
-  app_asp_name                = var.app_asp_name
-  electoral_register_app_name = var.electoral_register_app_name
-  resource_group              = var.eVoting_rg_name
-  polling_station_app_name    = var.polling_station_app_name
-  polling_station_api_name    = var.polling_station_api_name
-  voting_app_name             = var.voting_app_name
-  voting_func_name            = var.voting_func_name
-  polling_station_api_snet_id = module.vnet.polling_station_api_snet_id
-  portal_apps_snet_id         = module.vnet.portal_apps_snet_id
+  app_asp_name                    = var.app_asp_name
+  electoral_register_app_name     = var.electoral_register_app_name
+  resource_group                  = var.eVoting_rg_name
+  polling_station_app_name        = var.polling_station_app_name
+  polling_station_api_name        = var.polling_station_api_name
+  voting_app_name                 = var.voting_app_name
+  voting_func_name                = var.voting_func_name
+  polling_station_api_snet_id     = module.vnet.polling_station_api_snet_id
+  portal_apps_snet_id             = module.vnet.portal_apps_snet_id
+  application_insights_connection = module.azure-monitor.application_insights_connection
 }
 
 module "database" {
@@ -88,11 +90,11 @@ module "storage-account" {
     azurerm_resource_group.eVoting_rg,
     module.vnet
   ]
-  resource_group                   = var.eVoting_rg_name
-  votes_st_name                    = var.voting_st_name
-  st_blob_dns_id                   = module.vnet.st_blob_dns_id
-  votes_st_blob_pep_name           = var.votes_st_blob_pep_name
-  voting_st_snet_id                = module.vnet.voting_st_snet_id
+  resource_group         = var.eVoting_rg_name
+  votes_st_name          = var.voting_st_name
+  st_blob_dns_id         = module.vnet.st_blob_dns_id
+  votes_st_blob_pep_name = var.votes_st_blob_pep_name
+  voting_st_snet_id      = module.vnet.voting_st_snet_id
 }
 
 module "vnet" {
@@ -111,7 +113,7 @@ module "vnet" {
   private_endpoints_snet_name   = var.private_endpoints_snet_name
 }
 
-module "role-assignments"{
+module "role-assignments" {
   source = "./modules/role-assignments"
   depends_on = [
     azurerm_resource_group.eVoting_rg
@@ -120,4 +122,14 @@ module "role-assignments"{
   polling_station_api_principal_id = module.web-app.polling_station_api_principal_id
   votes_st_id                      = module.storage-account.votes_st_id
   voting_func_principal_id         = module.function.voting_func_principal_id
+}
+
+module "azure-monitor" {
+  source = "./modules/azure-Monitor"
+  depends_on = [
+    azurerm_resource_group.eVoting_rg,
+    module.vnet
+  ]
+  resource_group            = var.eVoting_rg_name
+  application_insights_name = var.application_insights_name
 }

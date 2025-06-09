@@ -10,6 +10,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile($"appsettings.json", false, true);
 
 builder.Services.AddControllers();
+
+#if !DEBUG
+builder.Services.AddApplicationInsightsTelemetry();
+#endif
+
 //builder.Services.AddCors(options =>
 //{
 //    options.AddPolicy("PollingStationPolicy", builder =>
