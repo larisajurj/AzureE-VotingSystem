@@ -57,6 +57,8 @@ resource "azurerm_linux_web_app" "polling_station_api" {
     
   }
   
+  virtual_network_subnet_id = var.polling_station_api_snet_id
+
 }
 
 #Polling Station Portal Web App Resource

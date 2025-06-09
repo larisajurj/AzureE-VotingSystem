@@ -26,6 +26,10 @@ variable "polling_station_api_snet_name" {
   type = string
 }
 
+variable "private_endpoints_snet_name" {
+  type = string
+}
+
 #Portal Apps SNET
 variable "portal_apps_snet_name" {
   type = string

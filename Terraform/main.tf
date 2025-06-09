@@ -57,7 +57,8 @@ module "web-app" {
   source = "./modules/web-app"
   depends_on = [
     azurerm_resource_group.eVoting_rg,
-    module.vnet
+    module.vnet,
+    module.function
   ]
 
   app_asp_name                = var.app_asp_name
@@ -89,6 +90,9 @@ module "storage-account" {
   ]
   resource_group                   = var.eVoting_rg_name
   votes_st_name                    = var.voting_st_name
+  st_blob_dns_id                   = module.vnet.st_blob_dns_id
+  votes_st_blob_pep_name           = var.votes_st_blob_pep_name
+  voting_st_snet_id                = module.vnet.voting_st_snet_id
 }
 
 module "vnet" {
@@ -104,6 +108,7 @@ module "vnet" {
   vnet_name                     = var.vnet_name
   voting_st_snet_name           = var.voting_st_snet_name
   voting_func_snet_name         = var.voting_func_snet_name
+  private_endpoints_snet_name   = var.private_endpoints_snet_name
 }
 
 module "role-assignments"{

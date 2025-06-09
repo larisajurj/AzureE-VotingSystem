@@ -21,7 +21,7 @@ resource "azurerm_subnet" "voting_func_snet" {
 
 }
 
-# Create SNET for Polling Station Api
+# Create SNET for Polling Station Api VNET intergation
 resource "azurerm_subnet" "polling_station_api_snet" {
   depends_on = [
     azurerm_virtual_network.azure_voting_vnet
@@ -33,7 +33,30 @@ resource "azurerm_subnet" "polling_station_api_snet" {
   address_prefixes = ["10.0.3.32/27"]
   private_endpoint_network_policies             = "Enabled"
   private_link_service_network_policies_enabled = true
+
+  delegation {
+    name = "delegation"
+    service_delegation {
+      name = "Microsoft.Web/serverFarms"
+    }
+  }
 }
+
+
+# Create SNET for Polling Station Api Private Endpoint
+resource "azurerm_subnet" "polling_station_api_pep_snet" {
+  depends_on = [
+    azurerm_virtual_network.azure_voting_vnet
+  ]
+
+  resource_group_name                           = var.resource_group
+  virtual_network_name                          = var.vnet_name
+  name                                          = var.private_endpoints_snet_name
+  address_prefixes = ["10.0.3.64/27"]
+  private_endpoint_network_policies             = "Enabled"
+  private_link_service_network_policies_enabled = true
+}
+
 
 # Create SNET for Polling Station App
 resource "azurerm_subnet" "portal_apps_snet" {
