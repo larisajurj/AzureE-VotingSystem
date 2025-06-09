@@ -85,14 +85,10 @@ module "storage-account" {
   source = "./modules/storage-account"
   depends_on = [
     azurerm_resource_group.eVoting_rg,
-    module.vnet,
-    module.web-app,
-    module.function
+    module.vnet
   ]
   resource_group                   = var.eVoting_rg_name
   votes_st_name                    = var.voting_st_name
-  polling_station_api_principal_id = module.web-app.polling_station_api_principal_id
-  voting_func_principal_id         = module.function.voting_func_principal_id
 }
 
 module "vnet" {
@@ -108,4 +104,15 @@ module "vnet" {
   vnet_name                     = var.vnet_name
   voting_st_snet_name           = var.voting_st_snet_name
   voting_func_snet_name         = var.voting_func_snet_name
+}
+
+module "role-assignments"{
+  source = "./modules/role-assignments"
+  depends_on = [
+    azurerm_resource_group.eVoting_rg
+  ]
+
+  polling_station_api_principal_id = module.web-app.polling_station_api_principal_id
+  votes_st_id                      = module.storage-account.votes_st_id
+  voting_func_principal_id         = module.function.voting_func_principal_id
 }

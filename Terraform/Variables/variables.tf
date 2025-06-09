@@ -24,7 +24,6 @@ polling_station_api_snet_name = "POLLING-STATION-API-SNET"
 
 #Voting App
 voting_app_name = "VOTING-PORTAL-RO"
-voting_app_snet_name = "VOTING-PORTAL-SNET"
 
 #Voting Fn
 voting_func_name      = "VOTING-FN"
