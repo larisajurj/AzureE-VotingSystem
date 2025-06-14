@@ -6,7 +6,7 @@ resource "azurerm_virtual_network" "azure_voting_vnet" {
   address_space = ["10.0.0.0/16"]
 }
 
-# Create SNET for Voting Func
+# Create SNET for Voting Func VNET Integration
 resource "azurerm_subnet" "voting_func_snet" {
   depends_on = [
     azurerm_virtual_network.azure_voting_vnet
@@ -21,7 +21,7 @@ resource "azurerm_subnet" "voting_func_snet" {
 
 }
 
-# Create SNET for Polling Station Api VNET intergation
+# Create SNET for Polling Station Api VNET integration
 resource "azurerm_subnet" "polling_station_api_snet" {
   depends_on = [
     azurerm_virtual_network.azure_voting_vnet
@@ -43,8 +43,8 @@ resource "azurerm_subnet" "polling_station_api_snet" {
 }
 
 
-# Create SNET for Polling Station Api Private Endpoint
-resource "azurerm_subnet" "polling_station_api_pep_snet" {
+# Create SNET for Private Endpoints
+resource "azurerm_subnet" "pep_snet" {
   depends_on = [
     azurerm_virtual_network.azure_voting_vnet
   ]
@@ -56,7 +56,6 @@ resource "azurerm_subnet" "polling_station_api_pep_snet" {
   private_endpoint_network_policies             = "Enabled"
   private_link_service_network_policies_enabled = true
 }
-
 
 # Create SNET for Polling Station App
 resource "azurerm_subnet" "portal_apps_snet" {
@@ -77,20 +76,6 @@ resource "azurerm_subnet" "portal_apps_snet" {
       name = "Microsoft.Web/serverFarms"
     }
   }
-}
-
-# Create SNET for Func Storage Account Private Endpoint
-resource "azurerm_subnet" "cosmos_db_snet" {
-  depends_on = [
-    azurerm_virtual_network.azure_voting_vnet
-  ]
-
-  resource_group_name                           = var.resource_group
-  virtual_network_name                          = var.vnet_name
-  name                                          = var.cosmos_db_snet_name
-  address_prefixes = ["10.0.3.160/27"]
-  private_endpoint_network_policies             = "Enabled"
-  private_link_service_network_policies_enabled = true
 }
 
 # Create SNET for Func Storage Account Private Endpoint

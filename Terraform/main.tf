@@ -51,6 +51,7 @@ module "function" {
   voting_func_pep_name = var.voting_func_pep_name
   websites_dns_id      = module.vnet.websites_dns_id
   application_insights_connection = module.azure-monitor.application_insights_connection
+  pep_snet_id  = module.vnet.pep_snet_id
 }
 
 #Create the Web Apps
@@ -72,6 +73,9 @@ module "web-app" {
   polling_station_api_snet_id     = module.vnet.polling_station_api_snet_id
   portal_apps_snet_id             = module.vnet.portal_apps_snet_id
   application_insights_connection = module.azure-monitor.application_insights_connection
+  pep_snet_id                     = module.vnet.pep_snet_id
+  polling_station_api_pep_name    = var.polling_station_api_pep_name
+  websites_dns_id                 = module.vnet.websites_dns_id
 }
 
 module "database" {
@@ -82,6 +86,9 @@ module "database" {
   ]
   cosmos_acc_name = var.cosmos_acc_name
   resource_group  = var.eVoting_rg_name
+  cosmos_dns_id   = module.vnet.cosmos_dns_id
+  cosmos_pep_name = var.cosmos_pep_name
+  pep_snet_id     = module.vnet.pep_snet_id
 }
 
 module "storage-account" {

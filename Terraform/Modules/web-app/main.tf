@@ -33,7 +33,6 @@ resource "azurerm_linux_web_app" "electoral_register_web_app" {
 
 }
 
-
 #Polling Station API Web App Resource
 resource "azurerm_linux_web_app" "polling_station_api" {
   name                = var.polling_station_api_name
@@ -60,6 +59,26 @@ resource "azurerm_linux_web_app" "polling_station_api" {
 
   virtual_network_subnet_id = var.polling_station_api_snet_id
 
+}
+
+# Create a Private Endpoint for the Polling Station API
+resource "azurerm_private_endpoint" "polling_station_api_pep" {
+  name                = var.polling_station_api_pep_name
+  location            = var.location
+  resource_group_name = var.resource_group
+  subnet_id           = var.pep_snet_id
+
+  private_service_connection {
+    name                           = "PollingStationAPIPrivateLinkConnection"
+    private_connection_resource_id = azurerm_linux_web_app.polling_station_api.id
+    subresource_names              = ["sites"]
+    is_manual_connection           = false
+  }
+
+  private_dns_zone_group {
+    name                 = "polling_station_dns_group"
+    private_dns_zone_ids = [var.websites_dns_id]
+  }
 }
 
 #Polling Station Portal Web App Resource

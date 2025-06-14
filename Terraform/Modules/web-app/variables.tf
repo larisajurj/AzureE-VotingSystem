@@ -36,6 +36,18 @@ variable "polling_station_api_name" {
   type = string
 }
 
+variable "pep_snet_id" {
+  type = string
+}
+
+variable "polling_station_api_pep_name" {
+  type = string
+}
+
+variable "websites_dns_id" {
+  type = string
+}
+
 variable "polling_station_api_snet_id" {
   type = string
 }

@@ -30,6 +30,10 @@ variable "voting_func_snet_id" {
   type = string
 }
 
+variable "pep_snet_id" {
+  type = string
+}
+
 variable "voting_func_pep_name" {
   type = string
 }

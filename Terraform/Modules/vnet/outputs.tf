@@ -14,8 +14,8 @@ output "portal_apps_snet_id" {
   value = azurerm_subnet.portal_apps_snet.id
 }
 
-output "cosmos_db_snet_id" {
-  value = azurerm_subnet.cosmos_db_snet.id
+output "pep_snet_id" {
+  value = azurerm_subnet.pep_snet.id
 }
 
 output "voting_st_snet_id" {

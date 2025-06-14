@@ -67,8 +67,7 @@ resource "azurerm_linux_function_app" "voting_func" {
     azurerm_service_plan.func_asp,
     azurerm_storage_account.func_st
   ]
-  lifecycle { ignore_changes = [virtual_network_subnet_id] }
-
+  
   virtual_network_subnet_id = var.voting_func_snet_id
 
 }
@@ -78,7 +77,7 @@ resource "azurerm_private_endpoint" "voting_func_pep" {
   name                = var.voting_func_pep_name
   location            = var.location
   resource_group_name = var.resource_group
-  subnet_id           = var.voting_func_snet_id
+  subnet_id           = var.pep_snet_id
 
   private_service_connection {
     name                           = "VotingFunctionAppPrivateLinkConnection"

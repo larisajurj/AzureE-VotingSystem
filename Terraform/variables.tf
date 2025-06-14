@@ -57,6 +57,9 @@ variable "polling_station_api_snet_name" {
   type = string
 }
 
+variable "polling_station_api_pep_name" {
+  type = string
+}
 variable "private_endpoints_snet_name" {
   type = string
 }
@@ -93,5 +96,9 @@ variable "votes_st_blob_pep_name" {
 
 #CosmosDB
 variable "cosmos_acc_name" {
+  type = string
+}
+
+variable "cosmos_pep_name" {
   type = string
 }

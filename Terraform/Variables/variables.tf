@@ -3,7 +3,7 @@ eVoting_rg_name = "VOTING-RG"
 
 #Virtual Network
 vnet_name = "VOTING_VNET"
-
+private_endpoints_snet_name   = "PEP-SNET"
 
 #Monitor
 application_insights_name = "VOTING_APPI"
@@ -25,15 +25,15 @@ portal_apps_snet_name    = "POLLING-STATION-PORTAL-SNET"
 #Polling Station API
 polling_station_api_name      = "POLLING-STATION-API"
 polling_station_api_snet_name = "POLLING-STATION-API-SNET"
-private_endpoints_snet_name   = "PEP-SNET"
+polling_station_api_pep_name  = "polling-station-api-pep"
 
 #Voting App
 voting_app_name = "VOTING-PORTAL-RO"
 
 #Voting Fn
-voting_func_name      = "VOTING-FN"
-voting_func_snet_name = "VOTING-FN-SNET"
-voting_func_pep_name  = "voting-fn-pep"
+voting_func_name          = "VOTING-FN"
+voting_func_snet_name     = "VOTING-FN-SNET"
+voting_func_pep_name      = "voting-fn-pep"
 
 #Voting Storage Account
 voting_st_name         = "votingst"
@@ -43,3 +43,4 @@ votes_st_blob_pep_name = "voting-st-pep"
 #Database
 cosmos_acc_name     = "voting-cosmosdb"
 cosmos_db_snet_name = "VOTING-COSMOS-SNET"
+cosmos_pep_name     = "voting-cosmosdb-pep"

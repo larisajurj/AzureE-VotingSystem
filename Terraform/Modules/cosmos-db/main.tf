@@ -21,7 +21,6 @@ resource "azurerm_cosmosdb_account" "cosmos_acc" {
 
 }
 
-
 resource "azurerm_cosmosdb_sql_database" "cosmos_sql_database" {
   name                = "VotingDatabase"
   resource_group_name = var.resource_group
@@ -82,6 +81,24 @@ resource "azurerm_cosmosdb_sql_container" "cosmos_special_reg_sql_container" {
   partition_key_paths   = ["/id"]
 }
 
+resource "azurerm_private_endpoint" "cosmos_pep" {
+  name                = var.cosmos_pep_name
+  location            = var.location
+  resource_group_name = var.resource_group
+  subnet_id           = var.pep_snet_id
+
+  private_service_connection {
+    name                           = "CosmosPrivateLinkConnection"
+    private_connection_resource_id = azurerm_cosmosdb_account.cosmos_acc.id
+    subresource_names              = ["SQL"]
+    is_manual_connection           = false
+  }
+
+  private_dns_zone_group {
+    name                 = "cosmos_dns_group"
+    private_dns_zone_ids = [var.cosmos_dns_id]
+  }
+}
 
 ## Custom role definition for read access to the Cosmos DB
 #resource "azurerm_cosmosdb_sql_role_definition" "read_role" {
