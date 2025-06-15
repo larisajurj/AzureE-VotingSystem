@@ -11,3 +11,10 @@ resource "azurerm_role_assignment" "polling_station_api_st_role_assignment" {
   role_definition_name = "Storage Blob Data Reader"
   scope                = var.votes_st_id
 }
+
+# Assign Contributor role to the Polling Station API
+resource "azurerm_role_assignment" "polling_station_api_db_role_assignment" {
+  principal_id         = var.polling_station_api_principal_id
+  role_definition_name = "Contributor"
+  scope                = var.cosmos_acc_id
+}

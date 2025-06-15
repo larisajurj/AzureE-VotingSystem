@@ -129,6 +129,7 @@ module "role-assignments" {
   polling_station_api_principal_id = module.web-app.polling_station_api_principal_id
   votes_st_id                      = module.storage-account.votes_st_id
   voting_func_principal_id         = module.function.voting_func_principal_id
+  cosmos_acc_id          = module.database.cosmos_acc_id
 }
 
 module "azure-monitor" {

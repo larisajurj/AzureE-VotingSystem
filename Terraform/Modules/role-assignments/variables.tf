@@ -12,3 +12,7 @@ variable "voting_func_principal_id" {
 variable "polling_station_api_principal_id" {
   type = string
 }
+
+variable "cosmos_acc_id" {
+  type = string
+}

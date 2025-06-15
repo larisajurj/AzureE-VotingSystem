@@ -19,6 +19,13 @@ resource "azurerm_subnet" "voting_func_snet" {
   private_endpoint_network_policies             = "Enabled"
   private_link_service_network_policies_enabled = true
 
+  delegation {
+    name = "delegation"
+    service_delegation {
+      name = "Microsoft.Web/serverFarms"
+    }
+  }
+
 }
 
 # Create SNET for Polling Station Api VNET integration

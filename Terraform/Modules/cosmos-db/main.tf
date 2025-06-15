@@ -12,7 +12,11 @@ resource "azurerm_cosmosdb_account" "cosmos_acc" {
   consistency_policy {
     consistency_level = "Session"
   }
-
+  
+  identity {
+    type = "SystemAssigned"
+  }
+  
   geo_location {
     location          = var.location
     failover_priority = 0
