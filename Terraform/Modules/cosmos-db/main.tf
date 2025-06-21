@@ -21,7 +21,20 @@ resource "azurerm_cosmosdb_account" "cosmos_acc" {
     location          = var.location
     failover_priority = 0
   }
-  public_network_access_enabled         = true
+
+    ip_range_filter = [
+      # Accept connections from within public Azure datacenters
+      "0.0.0.0",
+
+      # Allow access from the Azure portal
+      "4.210.172.107",
+      "13.88.56.148",
+      "13.91.105.215",
+      "40.91.218.243"
+    ]
+
+    network_acl_bypass_for_azure_services = true
+    public_network_access_enabled         = false
 
 }
 

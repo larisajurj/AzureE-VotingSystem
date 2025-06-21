@@ -48,15 +48,30 @@ resource "azurerm_linux_web_app" "polling_station_api" {
     APPLICATIONINSIGHTS_CONNECTION_STRING = var.application_insights_connection
   }
 
+  https_only = true
   site_config {
-    always_on = false
+    ftps_state             = "Disabled"
+    http2_enabled          = true
+    always_on              = false
+    vnet_route_all_enabled = true
+    minimum_tls_version    = "1.3"
 
-    application_stack {
-      dotnet_version = "9.0"
+    ip_restriction_default_action = "Deny"
+
+    ip_restriction {
+      service_tag               = "AzureCloud"
+      action                    = "Allow"
+      priority                  = 101
+      name                      = "Allow AzureCloud"
+      headers                   = []
+      ip_address                = null
+      virtual_network_subnet_id = null
     }
 
+    application_stack {
+        dotnet_version = "9.0"
+    }
   }
-
   virtual_network_subnet_id = var.polling_station_api_snet_id
 
 }
