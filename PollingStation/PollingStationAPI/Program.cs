@@ -45,17 +45,6 @@ builder.Services.AddCors(options =>
 //builder.Services.AddSingleton<TokenValidationService>();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
-/*builder.Services.Configure<JwtBearerOptions>(
-    JwtBearerDefaults.AuthenticationScheme,
-    options =>
-    {
-        options.TokenValidationParameters.ValidAudience = "b6fa1839-9154-494c-8fe1-1faf65b7b695";
-
-        // Optional: Accept multiple audiences (if needed later)
-        // options.TokenValidationParameters.ValidAudiences = new[] {
-        //     "api://b6fa1839-9154-494c-8fe1-1faf65b7b695"
-        // };
-    });*/
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {

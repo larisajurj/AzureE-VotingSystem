@@ -43,15 +43,15 @@ module "function" {
     azurerm_resource_group.eVoting_rg,
     module.vnet
   ]
-  func_asp_name        = var.func_asp_name
-  func_st_name         = var.func_st_name
-  resource_group       = var.eVoting_rg_name
-  voting_func_name     = var.voting_func_name
-  voting_func_snet_id  = module.vnet.voting_func_snet_id
-  voting_func_pep_name = var.voting_func_pep_name
-  websites_dns_id      = module.vnet.websites_dns_id
+  func_asp_name                   = var.func_asp_name
+  func_st_name                    = var.func_st_name
+  resource_group                  = var.eVoting_rg_name
+  voting_func_name                = var.voting_func_name
+  voting_func_snet_id             = module.vnet.voting_func_snet_id
+  voting_func_pep_name            = var.voting_func_pep_name
+  websites_dns_id                 = module.vnet.websites_dns_id
   application_insights_connection = module.azure-monitor.application_insights_connection
-  pep_snet_id  = module.vnet.pep_snet_id
+  pep_snet_id                     = module.vnet.pep_snet_id
 }
 
 #Create the Web Apps
@@ -129,7 +129,7 @@ module "role-assignments" {
   polling_station_api_principal_id = module.web-app.polling_station_api_principal_id
   votes_st_id                      = module.storage-account.votes_st_id
   voting_func_principal_id         = module.function.voting_func_principal_id
-  cosmos_acc_id          = module.database.cosmos_acc_id
+  cosmos_acc_id                    = module.database.cosmos_acc_id
 }
 
 module "azure-monitor" {

@@ -59,7 +59,7 @@ public class RegistrulElectoralController : ControllerBase
 		{
 
             await signalRService.InitializeSignalR(token);
-            await signalRService.RequestValidateVoter(voterId, "2");
+            await signalRService.RequestValidateVoter(voterId, pollingStationId);
             return Ok(new { message = $"Verification request for voter {voterId} sent to clients for polling station {pollingStationId}." });
         }
         catch (Exception e)

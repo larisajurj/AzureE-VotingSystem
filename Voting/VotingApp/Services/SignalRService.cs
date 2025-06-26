@@ -96,7 +96,6 @@ public class SignalRService : IAsyncDisposable
 
         try
         {
-            // IMPORTANT: Ensure "RegisterSession" on the hub expects the CircuitId
             int boothNumber = await _hubConnection.InvokeAsync<int>("RegisterSession", _currentCircuitId, _currentPollingStationId);
             _assignedCabin = boothNumber.ToString();
             Console.WriteLine($"SignalRService: Session registered with Hub. CircuitId: {_currentCircuitId}, PS: {_currentPollingStationId}, Cabin: {_assignedCabin}");
