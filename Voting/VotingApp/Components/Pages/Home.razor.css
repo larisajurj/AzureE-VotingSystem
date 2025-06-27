@@ -2,9 +2,16 @@
 }
 .padlock-icon {
     font-size: 100px;
-    color: var(--selected-background-color);
+    color: var(--blue);
+}
+.warning-icon {
+    font-size: 100px;
+    color: var(--red);
 }
 
+.warning-text {
+    color: var(--red);
+}
 .locked-screen {
     transition: opacity 0.5s ease;
     opacity: 1;

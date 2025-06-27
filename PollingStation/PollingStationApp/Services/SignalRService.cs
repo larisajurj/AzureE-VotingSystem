@@ -99,19 +99,38 @@ public class SignalRService : IAsyncDisposable
 
 
 
-    public async Task RequestUnlockAppAsync(int cabinToUnlock) // Parameters renamed for clarity
+    public async Task RequestUnlockAppAsync(int cabinToUnlock) 
     {
         if (_hubConnection != null && IsConnected)
         {
             try
             {
-                // Make sure your Hub's "UnlockApp" method expects these parameters
                 await _hubConnection.InvokeAsync("UnlockApp", _currentPollingStationId, cabinToUnlock.ToString());
                 OnConnectionStateChanged?.Invoke();
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"SignalRService: Error calling UnlockApp on server: {ex.Message}");
+            }
+        }
+        else
+        {
+            Console.WriteLine("SignalRService: Not connected. Cannot send UnlockApp request.");
+        }
+    }
+
+    public async Task RequestDeleteSession(string pollingStationId, int cabinToDelete) 
+    {
+        if (_hubConnection != null && IsConnected)
+        {
+            try
+            {
+                await _hubConnection.InvokeAsync("DeleteSession", cabinToDelete.ToString(), _currentPollingStationId);
+                OnConnectionStateChanged?.Invoke();
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"SignalRService: Error calling DeleteSession on server: {ex.Message}");
             }
         }
         else

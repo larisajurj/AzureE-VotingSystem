@@ -18,6 +18,7 @@ public class SignalRService : IAsyncDisposable
     public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
 
     public event Action<string, string>? OnAppUnlocked;
+    public event Action<int>? OnDeleteCabinReceived;
     public event Action? OnConnectionStateChanged;
     private readonly ITokenProvider _tokenProvider;
 
@@ -56,6 +57,12 @@ public class SignalRService : IAsyncDisposable
             })
             .WithAutomaticReconnect()
             .Build();
+
+        _hubConnection.On<int>("ReceiveDeleteSession", ( cabin) => // psId for pollingStationId
+        {
+            Console.WriteLine($"SignalRService: ReceiveDeleteSession received Cabin {cabin}");
+            OnDeleteCabinReceived?.Invoke(cabin);
+        });
 
         _hubConnection.On<string, string>("UnlockApp", (psId, cabin) => // psId for pollingStationId
         {
@@ -140,7 +147,7 @@ public class SignalRService : IAsyncDisposable
         }
     }
 
-    private async Task HandleConnectionClosed(Exception? error)
+    public async Task HandleConnectionClosed(Exception? error)
     {
         Console.WriteLine($"SignalRService: Connection closed. Error: {error?.Message}");
         if(_currentCircuitId != null && _assignedCabin != null && _currentPollingStationId != null)

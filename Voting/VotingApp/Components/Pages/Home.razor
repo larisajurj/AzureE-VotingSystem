@@ -22,7 +22,19 @@
 
 @initializationError
 
-@if (IsLocked || IsUnlocking)
+@if (isDisconnected)
+{
+    <div class="locked-screen text-center">
+        <div class="padlock-icon">
+            <span class="warning-icon fa-solid fa-exclamation-circle" style="user-select: none;"></span>
+        </div>
+
+        <h2 class="warning-text" style="user-select: none;">Această sesiune a fost deconectată</h2>
+        <p style="user-select: none;">Vă rugam dați refresh la pagină sau deschideți un tab nou pentru a vă reconecta</p>
+
+    </div>
+}
+else if(IsLocked || IsUnlocking)
 {
     <div class="locked-screen text-center @(IsUnlocking ? "unlocking" : "")">
         <div class="padlock-icon">
@@ -111,10 +123,12 @@ else
     private bool showConfirmationDialog = false;
     private bool isSubmittingVote = false; 
     private bool voteSubmissionSuccess = false;
+    private bool isDisconnected = false;
     protected override async Task OnInitializedAsync()
     {
         VotingService.OnAppUnlocked += HandleAppUnlockedFromServer;
         VotingService.OnConnectionStateChanged += UpdateConnectionState;
+        VotingService.OnDeleteCabinReceived += HandleDeleteSessionFromServer;
         _sessionId = CircuitHandlerService.CircuitId;
         if (string.IsNullOrEmpty(_sessionId))
         {
@@ -279,6 +293,26 @@ else
         }
         await InvokeAsync(StateHasChanged);
     }
+
+    private async void HandleDeleteSessionFromServer(int cabinToDelete)
+    {
+        try
+        {// This event is raised when ANY app is unlocked.
+            var cabinNr = Int32.Parse(_assignedCabin);
+            if(cabinToDelete == cabinNr)
+            {
+                isDisconnected = true;
+                await VotingService.HandleConnectionClosed(null);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error handling app unlocked: {ex.Message}");
+
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
 
     private void HandleCandidateSelection(Candidate candidate)
     {

@@ -71,12 +71,12 @@ public class VotingHub : Hub<IVotingHub>
                 _logger.LogWarning("Could not find a President for PollingStationId: {PollingStationId} during session deletion.", pollingStationId);
                 throw new HubException("President not found for the polling station.");
             }
-            await _pollingStationService.UpdateStatusBooth(pollingStationId, cabinNr, "unlocked");
-            _logger.LogInformation("Updated status for BoothId: {BoothId} to 'unlocked' at PollingStationId: {PollingStationId}", boothId, pollingStationId);
+            await _pollingStationService.UpdateStatusBooth(pollingStationId, cabinNr, "locked");
+            _logger.LogInformation("Updated status for BoothId: {BoothId} to 'locked' at PollingStationId: {PollingStationId}", boothId, pollingStationId);
 
             await _pollingStationService.DeleteSession(cabinNr, pollingStationId);
             _logger.LogInformation("Deleted session data for BoothId: {BoothId} at PollingStationId: {PollingStationId}", boothId, pollingStationId);
-
+            await Clients.User(president.Id).ReceiveDeleteSession(cabinNr);
             await Clients.User(president.Id).UpdateBoothStatus(pollingStationId);
             _logger.LogInformation("Notifying President {PresidentId} to update status for PollingStationId: {PollingStationId} after deletion.", president.Id, pollingStationId);
 
