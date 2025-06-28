@@ -2,7 +2,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using PollingStationAPI.Data.Contexts;
 using PollingStationAPI.Data.Models;
 using PollingStationAPI.Data.Repository;
 using PollingStationAPI.Data.Repository.Abstractions;
@@ -22,11 +21,6 @@ public static class Installer
             var cosmosClient = new CosmosClient(connectionString);
             return cosmosClient;
         });
-		 services.AddDbContext<CosmosDbContext>(options =>
-			options.UseCosmos(
-				connectionString ?? "",
-				databaseName
-        ));
 
         services.AddScoped<IRepository<PollingStation, string>>(s =>
         {

@@ -22,27 +22,6 @@ public class RegistrulElectoralController : ControllerBase
 
     }
 
-	[HttpGet("checkRegistration")]
-	public async Task<ActionResult> CheckRegistration(String cnp, String lastName)
-	{
-		RegistrationStatusDTO registrationStatus = null ;
-		try
-		{
-		  registrationStatus = await websiteService.checkRegistration(cnp, lastName, configuration.GetValue<string>("CapSolverAPIKey") ?? "");
-		}
-		catch (Exception ex) {
-			return BadRequest(ex.Message);
-		}
-
-		if (registrationStatus?.Status == RegistrationStatusDetails.SuccessfullValidation)
-		{
-			return Ok(registrationStatus);
-		}
-		else
-		{
-			return BadRequest(registrationStatus);
-		}
-	}
 
     [HttpGet("verifyVoter")]
     public async Task<ActionResult> VerifyVoter(
@@ -59,7 +38,7 @@ public class RegistrulElectoralController : ControllerBase
 		{
 
             await signalRService.InitializeSignalR(token);
-            await signalRService.RequestValidateVoter(voterId, "2");
+            await signalRService.RequestValidateVoter(voterId, pollingStationId);
             return Ok(new { message = $"Verification request for voter {voterId} sent to clients for polling station {pollingStationId}." });
         }
         catch (Exception e)

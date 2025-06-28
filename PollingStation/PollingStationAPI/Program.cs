@@ -10,22 +10,11 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Configuration.AddJsonFile($"appsettings.json", false, true);
 
 builder.Services.AddControllers();
-//builder.Services.AddCors(options =>
-//{
-//    options.AddPolicy("PollingStationPolicy", builder =>
-//    {
-//        builder
-//            .WithOrigins("https://localhost:7137/",
-//            "https://localhost:5072",
-//            "https://POLLING-STATION-PORTAL.azurewebsites.net", 
-//            "https://VOTING-PORTAL-RO.azurewebsites.net")
-//            .AllowAnyMethod()
-//            .AllowAnyHeader()
-//            .AllowCredentials()
-//            .SetIsOriginAllowed(hosts => true);
-//    });
-//});
-//
+
+#if !DEBUG
+builder.Services.AddApplicationInsightsTelemetry();
+builder.Logging.AddApplicationInsights();
+#endif
 
 builder.Services.AddCors(options =>
 {
@@ -37,20 +26,8 @@ builder.Services.AddCors(options =>
                    .AllowAnyHeader();
         });
 });
-//builder.Services.AddSingleton<TokenValidationService>();
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddMicrosoftIdentityWebApi(builder.Configuration.GetSection("AzureAd"));
-/*builder.Services.Configure<JwtBearerOptions>(
-    JwtBearerDefaults.AuthenticationScheme,
-    options =>
-    {
-        options.TokenValidationParameters.ValidAudience = "b6fa1839-9154-494c-8fe1-1faf65b7b695";
-
-        // Optional: Accept multiple audiences (if needed later)
-        // options.TokenValidationParameters.ValidAudiences = new[] {
-        //     "api://b6fa1839-9154-494c-8fe1-1faf65b7b695"
-        // };
-    });*/
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
@@ -89,20 +66,7 @@ builder.Services.AddAPIServices();
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
-/*app.Use(async (context, next) =>
-{
-    var authHeader = context.Request.Headers["Authorization"].ToString();
-    Console.WriteLine($"Authorization header: {authHeader}");
 
-    var config = builder.Configuration.GetSection("AzureAd").GetChildren();
-    Console.WriteLine("AzureAd Config:");
-    foreach (var item in config)
-    {
-        Console.WriteLine($"{item.Key}: {item.Value}");
-    }
-
-    await next();
-});*/
 app.UseRouting();
 app.UseCors("AllowAll");
 

@@ -30,8 +30,7 @@
         try
         {
             // Attempt to acquire the token at startup
-            var x = await TokenService.GetAccessTokenAsync(user);
-            x = "123";
+            await TokenService.GetAccessTokenAsync(user);
 
         }
         catch (InvalidOperationException ex)

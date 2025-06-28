@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.SignalR.Client;
 using System;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using VotingApp.Models;
 using VotingApp.Services.Abstractions;
 
 public class SignalRService : IAsyncDisposable
@@ -18,6 +19,7 @@ public class SignalRService : IAsyncDisposable
     public bool IsConnected => _hubConnection?.State == HubConnectionState.Connected;
 
     public event Action<string, string>? OnAppUnlocked;
+    public event Action<int>? OnDeleteCabinReceived;
     public event Action? OnConnectionStateChanged;
     private readonly ITokenProvider _tokenProvider;
 
@@ -57,6 +59,12 @@ public class SignalRService : IAsyncDisposable
             .WithAutomaticReconnect()
             .Build();
 
+        _hubConnection.On<int>("ReceiveDeleteSession", ( cabin) => // psId for pollingStationId
+        {
+            Console.WriteLine($"SignalRService: ReceiveDeleteSession received Cabin {cabin}");
+            OnDeleteCabinReceived?.Invoke(cabin);
+        });
+
         _hubConnection.On<string, string>("UnlockApp", (psId, cabin) => // psId for pollingStationId
         {
             Console.WriteLine($"SignalRService: UnlockApp received: PS {psId}, Cabin {cabin}");
@@ -75,6 +83,11 @@ public class SignalRService : IAsyncDisposable
             OnConnectionStateChanged?.Invoke();
             return _assignedCabin;
         }
+        catch (InvalidOperationException e)
+        {
+            _assignedCabin = null;
+            throw new InvalidOperationException(e.Message);
+        }
         catch (Exception ex)
         {
             Console.WriteLine($"SignalRService: Error starting connection or initial registration: {ex.Message}");
@@ -82,6 +95,7 @@ public class SignalRService : IAsyncDisposable
             OnConnectionStateChanged?.Invoke(); // Notify state changed even on error
             await DisposeCoreAsync(); // Clean up if start failed
             return _assignedCabin; // Or throw ex; to let caller handle
+            throw ex;
         }
     }
 
@@ -94,25 +108,16 @@ public class SignalRService : IAsyncDisposable
             return "Error: Not connected or IDs missing.";
         }
 
-        try
+        var boothResponse = await _hubConnection.InvokeAsync<RegisteredBoothHubResult>("RegisterSession", _currentCircuitId, _currentPollingStationId);
+        if (!boothResponse.Success)
         {
-            // IMPORTANT: Ensure "RegisterSession" on the hub expects the CircuitId
-            int boothNumber = await _hubConnection.InvokeAsync<int>("RegisterSession", _currentCircuitId, _currentPollingStationId);
-            _assignedCabin = boothNumber.ToString();
-            Console.WriteLine($"SignalRService: Session registered with Hub. CircuitId: {_currentCircuitId}, PS: {_currentPollingStationId}, Cabin: {_assignedCabin}");
-            return _assignedCabin;
+            if (boothResponse.ErrorType == ErrorType.MaxRegisteredBoothsExceeded)
+                throw new InvalidOperationException("Numărul maxim de cabine care se pot înregistra a fost atins");
+            throw new HubException(boothResponse.ErrorMessage);
         }
-        
-        catch (HubException hex)
-        {
-            Console.WriteLine($"SignalRService: HubException calling RegisterSession: {hex.Message}");
-            return $"Error: {hex.Message}";
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"SignalRService: Error calling RegisterSession: {ex.Message}");
-            return $"Error: {ex.Message}";
-        }
+        _assignedCabin = boothResponse.AssignedBooth.ToString();
+        Console.WriteLine($"SignalRService: Session registered with Hub. CircuitId: {_currentCircuitId}, PS: {_currentPollingStationId}, Cabin: {_assignedCabin}");
+        return _assignedCabin;
     }
 
     // Corrected DeleteMySession - now async Task and calls a different hub method
@@ -141,7 +146,7 @@ public class SignalRService : IAsyncDisposable
         }
     }
 
-    private async Task HandleConnectionClosed(Exception? error)
+    public async Task HandleConnectionClosed(Exception? error)
     {
         Console.WriteLine($"SignalRService: Connection closed. Error: {error?.Message}");
         if(_currentCircuitId != null && _assignedCabin != null && _currentPollingStationId != null)
@@ -164,16 +169,22 @@ public class SignalRService : IAsyncDisposable
         // Re-register using the original _currentCircuitId and _currentPollingStationId
         if (_currentCircuitId != null && _assignedCabin != null && _currentPollingStationId != null)
             await DeleteMySessionAsync(_currentCircuitId, _assignedCabin, _currentPollingStationId);
-
-        if (!string.IsNullOrEmpty(_currentCircuitId) && !string.IsNullOrEmpty(_currentPollingStationId))
+        try
         {
-            _assignedCabin = await RegisterSessionWithHubAsync(); // This will use _currentCircuitId
-            // If RegisterSessionWithHubAsync fails, _assignedCabin will contain error
+            if (!string.IsNullOrEmpty(_currentCircuitId) && !string.IsNullOrEmpty(_currentPollingStationId))
+            {
+                _assignedCabin = await RegisterSessionWithHubAsync(); // This will use _currentCircuitId
+                                                                      // If RegisterSessionWithHubAsync fails, _assignedCabin will contain error
+            }
+            else
+            {
+                Console.WriteLine("SignalRService: Cannot re-register session on reconnect, original IDs missing.");
+                _assignedCabin = "Error: Reconnect failed to re-register.";
+            }
         }
-        else
-        {
-            Console.WriteLine("SignalRService: Cannot re-register session on reconnect, original IDs missing.");
-            _assignedCabin = "Error: Reconnect failed to re-register.";
+        catch (Exception ex) {
+            Console.WriteLine(ex.Message);
+            _assignedCabin = null;
         }
         OnConnectionStateChanged?.Invoke();
     }

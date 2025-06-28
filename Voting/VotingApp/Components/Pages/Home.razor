@@ -20,9 +20,21 @@
 @inject IVotingClient votingClient
 @inject NavigationManager NavigationManager
 
-@initializationError
+@if (isDisconnected)
+{
+    <div class="locked-screen text-center">
+        <div class="padlock-icon">
+            <span class="warning-icon fa-solid fa-exclamation-circle" style="user-select: none;"></span>
+        </div>
 
-@if (IsLocked || IsUnlocking)
+        <h2 class="warning-text" style="user-select: none;">
+            @initializationError
+        </h2>
+        <p style="user-select: none;">Vă rugam dați refresh la pagină sau deschideți un tab nou pentru a vă reconecta</p>
+
+    </div>
+}
+else if(IsLocked || IsUnlocking)
 {
     <div class="locked-screen text-center @(IsUnlocking ? "unlocking" : "")">
         <div class="padlock-icon">
@@ -111,10 +123,13 @@ else
     private bool showConfirmationDialog = false;
     private bool isSubmittingVote = false; 
     private bool voteSubmissionSuccess = false;
+    private bool isDisconnected = false;
+
     protected override async Task OnInitializedAsync()
     {
         VotingService.OnAppUnlocked += HandleAppUnlockedFromServer;
         VotingService.OnConnectionStateChanged += UpdateConnectionState;
+        VotingService.OnDeleteCabinReceived += HandleDeleteSessionFromServer;
         _sessionId = CircuitHandlerService.CircuitId;
         if (string.IsNullOrEmpty(_sessionId))
         {
@@ -140,7 +155,8 @@ else
     {
         if (string.IsNullOrEmpty(_sessionId))
         {
-            initializationError = "Circuit/Session ID is not available to connect.";
+            initializationError = "Sesiunea nu este disponibila pentru conectare";
+            isDisconnected = true;
             _isConnected = false;
             StateHasChanged();
             return;
@@ -155,6 +171,7 @@ else
         try
         {
             initializationError = null; // Clear previous errors
+            isDisconnected = false;
             // InitializeAsync will handle connection and initial registration
             // It should return the assigned cabin or an indicator of success/failure
             string? cabin = await VotingService.InitializeAndRegisterAsync(_pollingStationId, _sessionId, user);
@@ -172,8 +189,15 @@ else
             {
                 _assignedCabin = string.Empty; // Or cabin if it contains the error message
                 initializationError = $"Failed to register with SignalR service: {cabin ?? "Unknown error"}";
+                isDisconnected = true;
                 Console.WriteLine(initializationError);
             }
+        }
+        catch(InvalidOperationException ioex)
+        {
+            isDisconnected = true;
+            initializationError = ioex.Message;
+            await VotingService.HandleConnectionClosed(null);
         }
         catch (Exception ex) // Catch exceptions from InitializeAndRegisterAsync
         {
@@ -195,50 +219,6 @@ else
         }
         InvokeAsync(StateHasChanged);
     }
-
-    private async Task StartConnection()
-    {
-        try
-        {
-            await _hubConnection.StartAsync();
-            _isConnected = true;
-            Console.WriteLine("Connection started");
-            await RegisterMySession();
-
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error starting connection: {ex.Message}");
-            _isConnected = false;
-        }
-    }
-
-    private async Task RegisterMySession()
-    {
-        try
-        {
-            if (string.IsNullOrEmpty(_pollingStationId) && string.IsNullOrEmpty(_assignedCabin) && string.IsNullOrEmpty(_sessionId))
-            {
-                var state = await authStateProvider.GetAuthenticationStateAsync();
-                var user = state.User;
-                await VotingService.InitializeAndRegisterAsync(_pollingStationId, _assignedCabin, user);
-                //UserOnlineService.Connect(_sessionId, _assignedCabin);
-                Console.WriteLine($"Registered session {_sessionId} and got booth number: {_assignedCabin}");
-            }else
-            {
-                Console.WriteLine("Not enough data to register session");
-            }
-
-            StateHasChanged();
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Error calling RegisterSession: {ex.Message}");
-            _assignedCabin = "Error: " + ex.Message;
-            StateHasChanged();
-        }
-    }
-
 
     public async ValueTask DisposeAsync()
     {
@@ -279,6 +259,27 @@ else
         }
         await InvokeAsync(StateHasChanged);
     }
+
+    private async void HandleDeleteSessionFromServer(int cabinToDelete)
+    {
+        try
+        {// This event is raised when ANY app is unlocked.
+            var cabinNr = Int32.Parse(_assignedCabin);
+            if(cabinToDelete == cabinNr)
+            {
+                isDisconnected = true;
+                initializationError = "Această sesiune a fost deconectată de către președintele de comisie";
+                await VotingService.HandleConnectionClosed(null);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error handling app unlocked: {ex.Message}");
+
+        }
+        await InvokeAsync(StateHasChanged);
+    }
+
 
     private void HandleCandidateSelection(Candidate candidate)
     {

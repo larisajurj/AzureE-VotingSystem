@@ -12,15 +12,31 @@ resource "azurerm_cosmosdb_account" "cosmos_acc" {
   consistency_policy {
     consistency_level = "Session"
   }
-
+  
+  identity {
+    type = "SystemAssigned"
+  }
+  
   geo_location {
     location          = var.location
     failover_priority = 0
   }
-  public_network_access_enabled         = true
+
+    ip_range_filter = [
+      # Accept connections from within public Azure datacenters
+      "0.0.0.0",
+
+      # Allow access from the Azure portal
+      "4.210.172.107",
+      "13.88.56.148",
+      "13.91.105.215",
+      "40.91.218.243"
+    ]
+
+    network_acl_bypass_for_azure_services = true
+    public_network_access_enabled         = false
 
 }
-
 
 resource "azurerm_cosmosdb_sql_database" "cosmos_sql_database" {
   name                = "VotingDatabase"
@@ -82,6 +98,24 @@ resource "azurerm_cosmosdb_sql_container" "cosmos_special_reg_sql_container" {
   partition_key_paths   = ["/id"]
 }
 
+resource "azurerm_private_endpoint" "cosmos_pep" {
+  name                = var.cosmos_pep_name
+  location            = var.location
+  resource_group_name = var.resource_group
+  subnet_id           = var.pep_snet_id
+
+  private_service_connection {
+    name                           = "CosmosPrivateLinkConnection"
+    private_connection_resource_id = azurerm_cosmosdb_account.cosmos_acc.id
+    subresource_names              = ["SQL"]
+    is_manual_connection           = false
+  }
+
+  private_dns_zone_group {
+    name                 = "cosmos_dns_group"
+    private_dns_zone_ids = [var.cosmos_dns_id]
+  }
+}
 
 ## Custom role definition for read access to the Cosmos DB
 #resource "azurerm_cosmosdb_sql_role_definition" "read_role" {

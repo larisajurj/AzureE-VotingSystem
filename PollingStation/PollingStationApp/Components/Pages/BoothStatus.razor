@@ -54,7 +54,8 @@ else
     public async Task OnDeleteSessionClicked(Booth booth)
     {
         if (UserOnlineService != null && UserOnlineService.PollingStation != null){
-            await PollingStationClient.DeleteBoothSession(UserOnlineService.PollingStation.Id, booth.Id);
+            //await PollingStationClient.DeleteBoothSession(UserOnlineService.PollingStation.Id, booth.Id);
+            await signalRService.RequestDeleteSession(UserOnlineService.PollingStation.Id, booth.Id);
             await UpdateBoothStatus();
         }
 

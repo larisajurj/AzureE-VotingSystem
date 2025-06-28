@@ -151,7 +151,6 @@ public class VirtualAssistantService : IVirtualAssistantService
             var httpContent = new StringContent(jsonRequestString, Encoding.UTF8, "application/json");
 
             Console.WriteLine($"Se trimite cererea către Gemini: {apiUrl}");
-            // Console.WriteLine($"Payload cerere: {jsonRequestString}"); // Pentru debugging, atenție la string-urile base64 mari
 
             HttpResponseMessage response = await _httpClient.PostAsync(apiUrl, httpContent, cancellationToken);
             string responseJson = await response.Content.ReadAsStringAsync(cancellationToken);

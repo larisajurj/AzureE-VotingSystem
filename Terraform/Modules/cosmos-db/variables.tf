@@ -10,3 +10,15 @@ variable "location" {
 variable "cosmos_acc_name" {
   type = string
 }
+
+variable "cosmos_pep_name" {
+  type = string
+}
+
+variable "pep_snet_id" {
+  type = string
+}
+
+variable "cosmos_dns_id" {
+  type = string
+}

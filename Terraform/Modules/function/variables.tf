@@ -6,6 +6,11 @@ variable "location" {
   default = "westeurope"
 }
 
+#Application Insights
+variable "application_insights_connection" {
+  type = string
+}
+
 #Service Plan 
 variable "func_asp_name" {
   type = string
@@ -16,12 +21,23 @@ variable "func_st_name" {
   type = string
 }
 
-#Polling Station Function
-variable "polling_station_fn_name" {
+#Voting Function
+variable "voting_func_name" {
   type = string
 }
 
-#Voting Function
-variable "voting_func_name" {
+variable "voting_func_snet_id" {
+  type = string
+}
+
+variable "pep_snet_id" {
+  type = string
+}
+
+variable "voting_func_pep_name" {
+  type = string
+}
+
+variable "websites_dns_id" {
   type = string
 }

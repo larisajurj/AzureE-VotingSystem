@@ -1,8 +1,5 @@
 ﻿using System.Net.Http.Headers;
 using System.Security.Claims;
-using Microsoft.Azure.Cosmos.Serialization.HybridRow.RecordIO;
-using System.Security.Cryptography.Xml;
-using PollingStationApp.Components;
 using PollingStationApp.Data.Helpers.Abstractions;
 using PollingStationApp.Models;
 using PollingStationApp.Services.Abstractions;

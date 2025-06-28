@@ -58,6 +58,7 @@ jobs:
                   backendAzureRmStorageAccountName: ${{ parameters.terraformStorageAccount }}
                   backendAzureRmContainerName: ${{ parameters.terraformContainer }}
                   backendAzureRmKey: "terraform.tfstate"
+                  commandOptions: "-reconfigure"
             - task: TerraformTaskV4@4
               displayName: "Terraform: Validate"
               inputs:

@@ -27,16 +27,7 @@
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
                 <i class="polling-station-icon navmenu-icon fa-solid fa-house"></i>
-                <span class="title">Cabina nr. @(SignalRService._assignedCabin ?? "Neînregistrat")</span>
-            </NavLink>
-        </div>
-        <div class="nav-item px-3">
-            <span class="text-muted">Cum se folosește aplicația?</span>
-        </div>
-        <div class="nav-item px-3">
-            <NavLink class="nav-link" href="weather">
-                <i class="polling-station-icon navmenu-icon fa-solid fa-cloud"></i>
-                <span class="title">Tutorial</span>
+                <span class="title">Cabina nr. @(_assignedCabin ?? "Neînregistrat")</span>
             </NavLink>
         </div>
     </nav>
@@ -46,10 +37,10 @@
     private bool collapseNavMenu = true;
     private IUserOnlineService UserOnlineService;
     private string? NavMenuCssClass => collapseNavMenu ? "collapse" : null;
-
+    private string? _assignedCabin;
     protected override async Task OnInitializedAsync()
     {
-        SignalRService.OnConnectionStateChanged += StateHasChanged;
+        SignalRService.OnConnectionStateChanged += OnUserOnlineServiceChanged;
         var state = await authStateProvider.GetAuthenticationStateAsync();
         var user = state.User;
         PollingStationClient.SetUser(user);
@@ -61,6 +52,7 @@
             Console.WriteLine($"Navmenu using UserOnlineService [{UserOnlineService.InstanceId}]");
         }
         UserOnlineService.OnChange += OnUserOnlineServiceChanged;
+        _assignedCabin = SignalRService._assignedCabin;
         //Console.WriteLine("NavMenu subscribed to OnChange");
     }
 
@@ -77,6 +69,7 @@
 
     private async void OnUserOnlineServiceChanged()
     {
+        _assignedCabin = SignalRService._assignedCabin;
         await InvokeAsync(StateHasChanged);
     }
 }
