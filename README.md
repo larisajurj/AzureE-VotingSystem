@@ -1,4 +1,5 @@
 # Azure E-Voting System
+
 The system is an E-Voting platform designed for the Romanian voting process.
 
 ---
@@ -8,19 +9,35 @@ The system is an E-Voting platform designed for the Romanian voting process.
 [https://github.com/larisajurj/AzureE-VotingSystem](https://github.com/larisajurj/AzureE-VotingSystem)
 
 ---
+
 ## Solutions Overview
 
-### 1. **PollingStation App**
+### 1. **Polling Station App**
+
 Handles local polling station logic and interfaces.
 
 Deployed version can be accessed at: https://polling-station-portal.azurewebsites.net/
 
-### 2. **VotingApp App**
+### 2. **Polling Station Api**
+
+Handles communication between apps and manipulates polling station data. Not accessible from the public internet.
+
+Deployed version can be accessed at: https://polling-station-api.azurewebsites.net/
+
+### 3. **Voting App**
+
 Manages the voter-facing app and vote processing.
 
 Deployed version can be accessed at: https://voting-portal-ro.azurewebsites.net/
 
-### 3. **RegistrulElectoralApi**
+### 4. **Voting Function**
+
+Is responsible for storing the votes. Not accessible from the public internet.
+
+Deployed version can be accessed at: https://voting-fn.azurewebsites.net/
+
+### 5. **Registrul Electoral Api**
+
 API for verifying voters.
 
 Deployed version can be accessed at: https://registrul-electoral-api.azurewebsites.net/swagger
@@ -31,25 +48,32 @@ Deployed version can be accessed at: https://registrul-electoral-api.azurewebsit
 
 - [.NET 9.0 SDK or newer](https://dotnet.microsoft.com/en-us/download)
 - [Visual Studio 2022 (v17.0 or later)](https://visualstudio.microsoft.com/)
+
 ---
 
 ## How to Run the Applications
 
 ### Step 1: Clone the Repository
+
 ```bash
 git clone https://github.com/larisajurj/AzureE-VotingSystem.git
 cd AzureE-VotingSystem
 ```
+
 ---
 
 ### Step 2: Run the solutions locally
+
 Each solution needs to be built and run separately
-### 1: PollingStation Solution
+
+### 1. PollingStation Solution
+
 Open PollingStation.sln in Visual Studio 2022.
 
 You must configure the solution to run both `PollingStationAPI` and `PollingStationApp`, with `PollingStationAPI` launching first.
 
 #### Steps to configure the multiple startup project:
+
 1. Right-click the solution → Properties
 
 2. Go to Common Properties → Configure Startup Projects
@@ -73,6 +97,7 @@ To run this project, you will need to add the following environment variables to
    `GeminiApiKey`
 
    `AzureBlob_AccountKey`
+
 2. PollingStation/PollingStationApp/appsettings.json
 
    `AzureAd_TenantId`
@@ -88,15 +113,18 @@ To run this project, you will need to add the following environment variables to
 After everything is configured, press `F5` to run the solution
 
 Navigate to:
-* Polling Station API: http://localhost:5062/swagger/
-* Polling Station App: http://localhost:5072/
 
-### 2: Voting Solution
+- Polling Station API: http://localhost:5062/swagger/
+- Polling Station App: http://localhost:5072/
+
+### 2. Voting Solution
+
 Open Voting.sln in Visual Studio 2022.
 
 You must configure the solution to run both `VotingFn` and `VotingApp`, with `VotingFn` launching first.
 
 #### Steps to configure the multiple startup project:
+
 1. Right-click the solution → Properties
 
 2. Go to Common Properties → Configure Startup Projects
@@ -122,18 +150,22 @@ To run this project, you will need to add the following environment variables to
 2. Voting/VotingFn/appsettings.json
 
    `AzureBlob_AccountKey`
+
 #### Running the projects
 
 After everything is configured, press `F5` to run the solution
 
 Navigate to:
-* VotingApp: http://localhost:7207/
-* VotingFunc: http://localhost:7154/
 
-### 3: Electoral Register API
+- VotingApp: http://localhost:7207/
+- VotingFunc: http://localhost:7154/
+
+### 3. Electoral Register API
+
 Open RegistrulElectoral_API.sln in Visual Studio 2022.
 
 #### Configure startup project
+
 1. Right-click the solution → Properties
 
 2. Go to Common Properties → Configure Startup Projects
@@ -141,15 +173,21 @@ Open RegistrulElectoral_API.sln in Visual Studio 2022.
 3. Choose `RegistrulElectoralAPI` as Single startup project
 
 #### Running the projects
+
 Press `F5` to run the solution
 
 Navigate to:
-* ElectoralRegisterApp: https://localhost:7165/swagger
+
+- ElectoralRegisterApp: https://localhost:7165/swagger
+
 ---
+
 ## How to Deploy the Applications
+
 The deployment pipeline can be found at https://dev.azure.com/larisajurj/eVotingAzure/_build?definitionId=1
 
 For deploying only the source code of an app, use the following checks:
+
 - [x] Deploy RegistrulElectoralAPI
 - [x] Deploy PollingStation Web App
 - [x] Deploy PollingStation API
@@ -157,4 +195,5 @@ For deploying only the source code of an app, use the following checks:
 - [x] Deploy Voting Function
 
 For deploying only the infrastructure of the system, use the following check:
+
 - [x] Deploy Infrastructure
