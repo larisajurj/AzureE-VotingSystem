@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.SignalR;
 using PollingStationAPI.Data.Models;
 using PollingStationAPI.Service.Services.Abstractions;
 using PollingStationAPI.VotingHub.Abstractions;
+using PollingStationAPI.VotingHub.Models;
 
 namespace PollingStationAPI.VotingHub;
 
@@ -22,7 +23,7 @@ public class VotingHub : Hub<IVotingHub>
         _logger = logger;
     }
 
-    public async Task<int> RegisterSession(string sessionId, string pollingStationId) //Removed userId
+    public async Task<RegisteredBoothHubResult> RegisterSession(string sessionId, string pollingStationId) //Removed userId
     {
         Console.WriteLine($"Registering session for SessionId: {sessionId}, PollingStationId: {pollingStationId}");
         _logger.LogInformation("Attempting to register session for PollingStationId: {PollingStationId}, SessionId: {SessionId}", pollingStationId, sessionId);
@@ -40,7 +41,19 @@ public class VotingHub : Hub<IVotingHub>
             _logger.LogInformation("Notifying President {PresidentId} to update status for PollingStationId: {PollingStationId}", president.Id, pollingStationId);
             await Clients.User(president.Id).UpdateBoothStatus(pollingStationId);
 
-            return booth.Id; 
+            return new RegisteredBoothHubResult() { 
+                Success = true,
+                AssignedBooth = booth.Id
+            }; 
+        }
+        catch (PollingStationAPI.Service.Exceptions.NotFoundException ex)
+        {
+            return new RegisteredBoothHubResult()
+            {
+                Success = false,
+                ErrorMessage = ex.Message,
+                ErrorType = ErrorType.MaxRegisteredBoothsExceeded
+            };
         }
         catch (HubException he)
         {
@@ -52,7 +65,12 @@ public class VotingHub : Hub<IVotingHub>
         {
             Console.WriteLine($"Error registering session: {ex.Message}");
             _logger.LogError(ex, "An unhandled exception occurred during session registration for PollingStationId: {PollingStationId}.", pollingStationId);
-            throw new HubException("Failed to register session.", ex); //Wrap the exception
+            return new RegisteredBoothHubResult()
+            {
+                Success = false,
+                ErrorMessage = ex.Message,
+                ErrorType = ErrorType.Unknown
+            };
         }
     }
 

@@ -22,27 +22,6 @@ public class RegistrulElectoralController : ControllerBase
 
     }
 
-	[HttpGet("checkRegistration")]
-	public async Task<ActionResult> CheckRegistration(String cnp, String lastName)
-	{
-		RegistrationStatusDTO registrationStatus = null ;
-		try
-		{
-		  registrationStatus = await websiteService.checkRegistration(cnp, lastName, configuration.GetValue<string>("CapSolverAPIKey") ?? "");
-		}
-		catch (Exception ex) {
-			return BadRequest(ex.Message);
-		}
-
-		if (registrationStatus?.Status == RegistrationStatusDetails.SuccessfullValidation)
-		{
-			return Ok(registrationStatus);
-		}
-		else
-		{
-			return BadRequest(registrationStatus);
-		}
-	}
 
     [HttpGet("verifyVoter")]
     public async Task<ActionResult> VerifyVoter(
