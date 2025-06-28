@@ -135,7 +135,7 @@ public class SignalRService : IAsyncDisposable
         }
         else
         {
-            Console.WriteLine("SignalRService: Not connected. Cannot send UnlockApp request.");
+            Console.WriteLine("SignalRService: Not connected. Cannot send DeleteSession request.");
         }
     }
 
